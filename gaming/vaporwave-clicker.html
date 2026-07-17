@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Vaporwave Clicker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0410;
+            --panel-bg: rgba(15, 6, 25, 0.7);
+            --border-color: #ff007f;
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff007f;
+            --neon-gold: #ffcc00;
+            --text-color: #39ff14; /* Retro Terminal Phosphor Green */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle, #20042f 0%, #07010a 100%);
+            color: var(--text-color);
+            font-family: 'VT323', monospace;
+            font-size: 1.25rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Scanline CRT overlay filter */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+            z-index: 999;
+            background-size: 100% 4px, 4px 100%;
+            pointer-events: none;
+        }
+
+        /* Subtle phosphor screen flicker */
+        @keyframes crt-flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 0.995; }
+            100% { opacity: 0.98; }
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 340px 1fr 320px;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+            height: 90vh;
+            min-height: 650px;
+            animation: crt-flicker 0.15s infinite;
+            text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+        }
+
+        .column {
+            background: var(--panel-bg);
+            border: 4px double var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.15), inset 0 0 15px rgba(255, 0, 127, 0.1);
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-bottom: 3px double var(--border-color);
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--neon-pink);
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.6);
+        }
+
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border-color);
+            color: #8da2bb;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            font-size: 1.15rem;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--neon-blue);
+            color: #fff;
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        /* Scroller Lists and Shop elements */
+        .scroller {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .scroller::-webkit-scrollbar {
+            width: 4px;
+        }
+        .scroller::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scroller::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+
+        .shop-item {
+            background: rgba(255, 255, 255, 0.01);
+            border: 2px solid var(--border-color);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .shop-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            transform: translateX(2px);
+        }
+
+        .shop-item.disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .shop-item.disabled:hover {
+            border-color: var(--border-color);
+            transform: none;
+            background: rgba(255, 255, 255, 0.01);
+            box-shadow: none;
+        }
+
+        .item-details h4 {
+            font-size: 1.3rem;
+            margin-bottom: 1px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+        }
+        .item-details p {
+            font-size: 1.05rem;
+            color: #8da2bb;
+        }
+
+        .item-meta {
+            text-align: right;
+        }
+        .item-cost {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--neon-gold);
+            text-shadow: 0 0 6px rgba(255, 204, 0, 0.4);
+        }
+        .item-count {
+            font-size: 1rem;
+            color: #8da2bb;
+            margin-top: 1px;
+        }
+
+        /* Center Column: Perspective Grid Horizon */
+        .center-column {
+            background: transparent;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .status-panel {
+            text-align: center;
+            margin-top: 10px;
+            background: rgba(0,0,0,0.4);
+            border: 3px double var(--neon-blue);
+            padding: 10px 30px;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0,240,255,0.2);
+        }
+
+        .energy-counter {
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.7);
+            margin-bottom: 2px;
+        }
+
+        .energy-rate {
+            font-size: 1.4rem;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+        }
+
+        .core-area {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+        }
+
+        #coreCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Arcade coin button */
+        .interactive-core-btn {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff0055 0%, #5d001b 100%);
+            border: 8px solid var(--neon-gold);
+            box-shadow: 0 0 25px var(--neon-gold), inset 0 0 15px rgba(255,255,255,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 2;
+            position: relative;
+            outline: none;
+            transition: transform 0.05s ease, box-shadow 0.2s ease;
+        }
+
+        .interactive-core-btn:active {
+            transform: scale(0.94);
+            box-shadow: 0 0 40px var(--neon-pink);
+            background: radial-gradient(circle, #ff007f 0%, #8b0042 100%);
+        }
+
+        .coin-face {
+            text-align: center;
+        }
+
+        .arcade-text {
+            display: block;
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 8px #fff;
+            letter-spacing: 1px;
+            line-height: 1.1;
+        }
+
+        .pixel-text {
+            font-size: 1rem;
+            color: var(--neon-gold);
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.8);
+        }
+
+        /* Token and Utility Column */
+        .shards-counter {
+            color: var(--neon-pink);
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 0, 127, 0.05);
+            border: 3px double var(--neon-pink);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(255,0,127,0.2);
+        }
+
+        .util-btn {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .util-btn:hover {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.05);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .prestige-btn {
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+            margin-top: auto;
+            padding: 12px;
+            font-size: 1.25rem;
+        }
+
+        .prestige-btn:hover {
+            background: var(--neon-pink);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-pink);
+        }
+
+        /* Header control items */
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .mute-btn {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--neon-pink);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        /* Achievement Lists */
+        .achievement-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 2px solid var(--border-color);
+            margin-bottom: 8px;
+            font-size: 1.15rem;
+            opacity: 0.35;
+            transition: opacity 0.3s ease;
+        }
+
+        .achievement-badge.unlocked {
+            opacity: 1;
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.04);
+            box-shadow: 0 0 8px rgba(0,240,255,0.2);
+            color: var(--neon-blue);
+        }
+
+        .achievement-icon {
+            font-size: 1.4rem;
+        }
+
+        /* Modal window CRT styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #180922, #07010a);
+            border: 4px double var(--neon-blue);
+            border-radius: 4px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+            font-family: 'VT323', monospace;
+        }
+
+        .modal-content h3 {
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            font-size: 2.1rem;
+            text-shadow: 0 0 8px rgba(0,240,255,0.5);
+        }
+
+        .modal-content p {
+            font-size: 1.3rem;
+            color: #8da2bb;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 960px) {
+            body {
+                overflow-y: auto;
+            }
+            .dashboard {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .column {
+                height: 500px;
+            }
+            .center-column {
+                height: 450px;
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <!-- Left Column: Retro Upgrades & Relics -->
+    <div class="column">
+        <h2>HARDWARE SHOP</h2>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('upgrades')">UPGRADES</button>
+            <button class="tab-btn" onclick="switchTab('generators')">DRIVES</button>
+        </div>
+
+        <!-- Upgrades Shop Tab -->
+        <div id="upgrades-tab" class="scroller">
+            <!-- Upgrades dynamically loaded here -->
+        </div>
+
+        <!-- Generators Shop Tab -->
+        <div id="generators-tab" class="scroller" style="display: none;">
+            <!-- Generators dynamically loaded here -->
+        </div>
+    </div>
+
+    <!-- Center Column: Retro Visualizer Area -->
+    <div class="column center-column">
+        <div class="status-panel">
+            <div id="energy-counter" class="energy-counter">0.00 CR</div>
+            <div id="energy-rate" class="energy-rate">0.0 CR/sec</div>
+        </div>
+
+        <div class="core-area">
+            <canvas id="coreCanvas"></canvas>
+            <button class="interactive-core-btn" id="coreBtn" onclick="clickCore(event)">
+                <div class="coin-face">
+                    <span class="arcade-text">INSERT COIN</span>
+                    <span class="pixel-text">CLICK!</span>
+                </div>
+            </button>
+        </div>
+
+        <div style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px;">
+            <span style="font-size: 1.15rem; color: #8da2bb;">Click Yield: <strong id="click-rate" style="color:var(--neon-blue);">1 CR</strong></span>
+            <span style="font-size: 1.15rem; color: #8da2bb;">Multiplier: <strong id="global-mult" style="color:var(--neon-pink);">100%</strong></span>
+        </div>
+    </div>
+
+    <!-- Right Column: Relics, Badges, & Utilities -->
+    <div class="column">
+        <h2>CABINET RELICS</h2>
+        
+        <div class="shards-counter">
+            <div style="font-size: 1rem; margin-bottom: 2px; color: #8da2bb;">GOLDEN TOKENS</div>
+            <span id="shards-val">0</span>
+        </div>
+
+        <h2>BADGES</h2>
+        <div class="scroller" id="achievements-list" style="margin-bottom: 15px;">
+            <!-- Achievements dynamically loaded here -->
+        </div>
+
+        <h2>DATA CASSETTE</h2>
+        <button class="util-btn" onclick="exportSave()">SAVE TO CLIPBOARD</button>
+        <button class="util-btn" onclick="promptImport()">LOAD CASSETTE CODE</button>
+        <button class="util-btn prestige-btn" onclick="prestigeReset()">GOLDEN RESET</button>
+    </div>
+</div>
+
+<!-- Offline Gains Modal -->
+<div id="offline-modal" class="modal hidden">
+    <div class="modal-content">
+        <h3>SYS_LOAD: hyper-sleep</h3>
+        <p id="offline-summary-text">While terminal session was inactive, memory registers processed automatic credits synthesis.</p>
+        <button class="btn" onclick="closeModal('offline-modal')">HARVEST CREDITS</button>
+    </div>
+</div>
+
+<script>
+    // --- Synthesized 8-Bit Audio Engine (Web Audio API) ---
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSynthSound(freq, type, duration, slideTo = 0) {
+        if (isMuted) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slideTo > 0) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+        }
+
+        gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const soundEffects = {
+        // Classic ascending jump click sweep
+        click: () => playSynthSound(220, 'triangle', 0.08, 900),
+        // Synth arpeggio chord for upgrades
+        purchaseUp: () => {
+            const notes = [330, 440, 554, 659];
+            notes.forEach((n, i) => {
+                setTimeout(() => playSynthSound(n, 'square', 0.15), i * 50);
+            });
+        },
+        // Classic 2-tone coin arpeggio
+        purchaseGen: () => {
+            if (isMuted) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            const now = audioCtx.currentTime;
+            osc.frequency.setValueAtTime(987.77, now); // B5
+            osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + 0.3);
+        },
+        // Sweeping arcade reset chime
+        prestige: () => {
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((n, i) => {
+                setTimeout(() => playSynthSound(n, 'triangle', 0.25, n * 1.5), i * 90);
+            });
+        },
+        anomalyAlert: () => playSynthSound(880, 'square', 0.2, 440)
+    };
+
+    // --- Format Large Numbers ---
+    const SUFFIXES = ["", "K", "M", "B", "T", "QA", "QI", "SX", "SP", "OC", "NO", "DC"];
+    function formatNum(num) {
+        if (num === 0) return "0.00";
+        if (num < 1000) return num.toFixed(2);
+        const exp = Math.floor(Math.log10(num) / 3);
+        const index = Math.min(exp, SUFFIXES.length - 1);
+        const val = num / Math.pow(10, index * 3);
+        return val.toFixed(2) + " " + SUFFIXES[index];
+    }
+
+    // --- Core Game State Definitions ---
+    const baseUpgrades = [
+        { id: 'up_0', name: "Friction Joystick", cost: 15, power: 1, type: "click", multiplier: 1.15 },
+        { id: 'up_1', name: "CRT Phosphor", cost: 100, power: 5, type: "click", multiplier: 1.15 },
+        { id: 'up_2', name: "Overclocked 6502", cost: 850, power: 25, type: "click", multiplier: 1.16 },
+        { id: 'up_3', name: "Z80 Coprocessor", cost: 5000, power: 150, type: "click", multiplier: 1.16 },
+        { id: 'up_4', name: "Vaporwave Module", cost: 45000, power: 1000, type: "click", multiplier: 1.18 }
+    ];
+
+    const baseGenerators = [
+        { id: 'gen_0', name: "8-Bit Diskette", cost: 50, rate: 0.5, type: "passive", multiplier: 1.15 },
+        { id: 'gen_1', name: "Dial-Up Modem", cost: 400, rate: 4, type: "passive", multiplier: 1.15 },
+        { id: 'gen_2', name: "Arcade Cabinet", cost: 3200, rate: 22, type: "passive", multiplier: 1.16 },
+        { id: 'gen_3', name: "Quantum Cassette", cost: 24000, rate: 140, type: "passive", multiplier: 1.16 },
+        { id: 'gen_4', name: "Mainframe Rig", cost: 180000, rate: 900, type: "passive", multiplier: 1.18 }
+    ];
+
+    const achievements = [
+        { id: 'ach_100', name: "Quarter Eater", desc: "Reach 100 total credits synthesized", type: "energy", target: 100, bonus: 0.05, unlocked: false },
+        { id: 'ach_10k', name: "Radical Hacker", desc: "Reach 10k total credits synthesized", type: "energy", target: 10000, bonus: 0.05, unlocked: false },
+        { id: 'ach_1m', name: "Neon Overlord", desc: "Reach 1M total credits synthesized", type: "energy", target: 1000000, bonus: 0.1, unlocked: false },
+        { id: 'ach_click', name: "Button Masher", desc: "Click the arcade coin 50 times", type: "clicks", target: 50, bonus: 0.05, unlocked: false }
+    ];
+
+    let state = {
+        energy: 0,
+        lifetimeEnergy: 0,
+        totalClicks: 0,
+        antimatterShards: 0,
+        upgrades: { up_0: 0, up_1: 0, up_2: 0, up_3: 0, up_4: 0 },
+        generators: { gen_0: 0, gen_1: 0, gen_2: 0, gen_3: 0, gen_4: 0 },
+        unlockedAch: [],
+        lastTickTime: Date.now()
+    };
+
+    // --- Dynamic Upgrades and Cost Calculation ---
+    function getUpgradeCost(id) {
+        const base = baseUpgrades.find(u => u.id === id);
+        const count = state.upgrades[id] || 0;
+        return Math.floor(base.cost * Math.pow(base.multiplier, count));
+    }
+
+    function getGeneratorCost(id) {
+        const base = baseGenerators.find(g => g.id === id);
+        const count = state.generators[id] || 0;
+        return Math.floor(base.cost * Math.pow(base.multiplier, count));
+    }
+
+    function getMultiplier() {
+        let mult = 1.0;
+        mult += state.antimatterShards * 0.02; // Golden tokens multiplier boost (+2% per Token)
+        achievements.forEach(ach => {
+            if (state.unlockedAch.includes(ach.id)) {
+                mult += ach.bonus;
+            }
+        });
+        return mult;
+    }
+
+    function getClickPower() {
+        let base = 1;
+        baseUpgrades.forEach(up => {
+            const count = state.upgrades[up.id] || 0;
+            base += count * up.power;
+        });
+        return base * getMultiplier();
+    }
+
+    function getPassiveRate() {
+        let base = 0;
+        baseGenerators.forEach(gen => {
+            const count = state.generators[gen.id] || 0;
+            base += count * gen.rate;
+        });
+        return base * getMultiplier();
+    }
+
+    // --- Tab Switching Logic ---
+    function switchTab(tab) {
+        const upTab = document.getElementById('upgrades-tab');
+        const genTab = document.getElementById('generators-tab');
+        const buttons = document.querySelectorAll('.tab-btn');
+
+        buttons.forEach(btn => btn.classList.remove('active'));
+
+        if (tab === 'upgrades') {
+            upTab.style.display = 'block';
+            genTab.style.display = 'none';
+            document.querySelector('.tab-btn[onclick="switchTab(\'upgrades\')"]').classList.add('active');
+        } else {
+            upTab.style.display = 'none';
+            genTab.style.display = 'block';
+            document.querySelector('.tab-btn[onclick="switchTab(\'generators\')"]').classList.add('active');
+        }
+    }
+
+    // --- Dynamic Rendering Modules ---
+    function renderShop() {
+        const upTab = document.getElementById('upgrades-tab');
+        let upHTML = '';
+        baseUpgrades.forEach(up => {
+            const cost = getUpgradeCost(up.id);
+            const count = state.upgrades[up.id] || 0;
+            const disabled = state.energy < cost ? 'disabled' : '';
+            upHTML += `
+                <div class="shop-item ${disabled}" onclick="buyUpgrade('${up.id}')">
+                    <div class="item-details">
+                        <h4>${up.name}</h4>
+                        <p>+${up.power} credits/click</p>
+                    </div>
+                    <div class="item-meta">
+                        <div class="item-cost">${formatNum(cost)} CR</div>
+                        <div class="item-count">Lv. ${count}</div>
+                    </div>
+                </div>
+            `;
+        });
+        upTab.innerHTML = upHTML;
+
+        const genTab = document.getElementById('generators-tab');
+        let genHTML = '';
+        baseGenerators.forEach(gen => {
+            const cost = getGeneratorCost(gen.id);
+            const count = state.generators[gen.id] || 0;
+            const disabled = state.energy < cost ? 'disabled' : '';
+            genHTML += `
+                <div class="shop-item ${disabled}" onclick="buyGenerator('${gen.id}')">
+                    <div class="item-details">
+                        <h4>${gen.name}</h4>
+                        <p>+${gen.rate} CR/sec passive drive</p>
+                    </div>
+                    <div class="item-meta">
+                        <div class="item-cost">${formatNum(cost)} CR</div>
+                        <div class="item-count">Owned: ${count}</div>
+                    </div>
+                </div>
+            `;
+        });
+        genTab.innerHTML = genHTML;
+    }
+
+    function renderAchievements() {
+        const achList = document.getElementById('achievements-list');
+        let achHTML = '';
+        achievements.forEach(ach => {
+            const unlocked = state.unlockedAch.includes(ach.id) ? 'unlocked' : '';
+            const bonusText = ach.bonus > 0 ? ` (+${ach.bonus * 100}% speed)` : '';
+            achHTML += `
+                <div class="achievement-badge ${unlocked}">
+                    <span class="achievement-icon">★</span>
+                    <div>
+                        <strong>${ach.name}</strong><br>
+                        <span style="font-size: 0.95rem; color: #8da2bb;">${ach.desc}${bonusText}</span>
+                    </div>
+                </div>
+            `;
+        });
+        achList.innerHTML = achHTML;
+    }
+
+    function renderStats() {
+        document.getElementById('energy-counter').innerText = formatNum(state.energy) + " CR";
+        document.getElementById('energy-rate').innerText = formatNum(getPassiveRate()) + " CR/sec";
+        document.getElementById('click-rate').innerText = formatNum(getClickPower()) + " CR";
+        document.getElementById('global-mult').innerText = Math.round(getMultiplier() * 100) + "%";
+        document.getElementById('shards-val').innerText = state.antimatterShards;
+    }
+
+    // --- Action Mechanics ---
+    function clickCore(event) {
+        const yieldAmount = getClickPower();
+        state.energy += yieldAmount;
+        state.lifetimeEnergy += yieldAmount;
+        state.totalClicks++;
+
+        soundEffects.click();
+        triggerClickAesthetics(event, yieldAmount);
+        checkAchievements();
+        renderStats();
+    }
+
+    function buyUpgrade(id) {
+        const cost = getUpgradeCost(id);
+        if (state.energy >= cost) {
+            state.energy -= cost;
+            state.upgrades[id] = (state.upgrades[id] || 0) + 1;
+            soundEffects.purchaseUp();
+            renderShop();
+            renderStats();
+        }
+    }
+
+    function buyGenerator(id) {
+        const cost = getGeneratorCost(id);
+        if (state.energy >= cost) {
+            state.energy -= cost;
+            state.generators[id] = (state.generators[id] || 0) + 1;
+            soundEffects.purchaseGen();
+            renderShop();
+            renderStats();
+        }
+    }
+
+    function prestigeReset() {
+        const shardYield = Math.floor(Math.sqrt(state.lifetimeEnergy / 1000000));
+        if (shardYield <= 0) {
+            alert("Synthesize more Lifetime credits first. Minimum requirement is 1.0M lifetime credits to extract 1 Token.");
+            return;
+        }
+
+        const conf = confirm(`Executing Golden Reset will wipe active credits, click upgrades, and computing drives.\n\nIn return, you will harvest ${shardYield} Golden Tokens (+${shardYield * 2}% permanent speed boost).\n\nDo you want to proceed?`);
+        if (conf) {
+            soundEffects.prestige();
+            state.antimatterShards += shardYield;
+            state.energy = 0;
+            state.lifetimeEnergy = 0;
+            state.upgrades = { up_0: 0, up_1: 0, up_2: 0, up_3: 0, up_4: 0 };
+            state.generators = { gen_0: 0, gen_1: 0, gen_2: 0, gen_3: 0, gen_4: 0 };
+            
+            saveGame();
+            renderShop();
+            renderStats();
+        }
+    }
+
+    function checkAchievements() {
+        achievements.forEach(ach => {
+            if (state.unlockedAch.includes(ach.id)) return;
+
+            let conditionMet = false;
+            if (ach.type === 'energy' && state.lifetimeEnergy >= ach.target) {
+                conditionMet = true;
+            } else if (ach.type === 'clicks' && state.totalClicks >= ach.target) {
+                conditionMet = true;
+            }
+
+            if (conditionMet) {
+                state.unlockedAch.push(ach.id);
+                soundEffects.anomalyAlert();
+                renderAchievements();
+            }
+        });
+    }
+
+    // --- Floating Visual FX Canvas Engine ---
+    const canvas = document.getElementById('coreCanvas');
+    const canvasCtx = canvas.getContext('2d');
+    let dynamicFX = [];
+    let gridOffset = 0;
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerClickAesthetics(event, amount) {
+        const rect = canvas.getBoundingClientRect();
+        let targetX = rect.width / 2;
+        let targetY = rect.height / 2;
+
+        if (event && event.clientX) {
+            targetX = event.clientX - rect.left;
+            targetY = event.clientY - rect.top;
+        }
+
+        // Particle Bursts
+        for (let i = 0; i < 15; i++) {
+            dynamicFX.push({
+                type: 'spark',
+                x: targetX,
+                y: targetY,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                alpha: 1,
+                decay: 0.02 + Math.random() * 0.03,
+                color: Math.random() > 0.5 ? '#00f0ff' : '#ff007f',
+                size: 2 + Math.random() * 3
+            });
+        }
+
+        // Drifting Floater Text
+        dynamicFX.push({
+            type: 'text',
+            x: targetX,
+            y: targetY - 20,
+            vy: -1.5,
+            alpha: 1,
+            decay: 0.02,
+            text: `+${formatNum(amount)}`
+        });
+    }
+
+    // --- Drift Event Anomaly Spawner ---
+    let activeAnomaly = null;
+
+    function spawnAnomaly() {
+        if (activeAnomaly || Math.random() > 0.4) return;
+        soundEffects.anomalyAlert();
+
+        const canvasRect = canvas.getBoundingClientRect();
+        activeAnomaly = {
+            x: Math.random() * (canvasRect.width - 80) + 40,
+            y: Math.random() * (canvasRect.height - 80) + 40,
+            radius: 20,
+            pulse: 0,
+            value: Math.max(10, getClickPower() * 20),
+            lifetime: 450
+        };
+    }
+
+    function checkAnomalyClick(x, y) {
+        if (!activeAnomaly) return;
+        const dist = Math.hypot(x - activeAnomaly.x, y - activeAnomaly.y);
+        if (dist < activeAnomaly.radius + 15) {
+            state.energy += activeAnomaly.value;
+            state.lifetimeEnergy += activeAnomaly.value;
+            
+            // Collect explosion effect
+            for (let i = 0; i < 25; i++) {
+                dynamicFX.push({
+                    type: 'spark',
+                    x: activeAnomaly.x,
+                    y: activeAnomaly.y,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    alpha: 1,
+                    decay: 0.015,
+                    color: '#ffcc00',
+                    size: 3 + Math.random() * 4
+                });
+            }
+            dynamicFX.push({
+                type: 'text',
+                x: activeAnomaly.x,
+                y: activeAnomaly.y - 25,
+                vy: -2,
+                alpha: 1,
+                decay: 0.015,
+                text: `STRIKE HARVEST +${formatNum(activeAnomaly.value)}!`
+            });
+
+            soundEffects.purchaseUp();
+            activeAnomaly = null;
+            renderStats();
+        }
+    }
+
+    // Intercept click checks on overlay canvas for active anomalies
+    document.querySelector('.core-area').addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+        checkAnomalyClick(clickX, clickY);
+    });
+
+    // --- Render Canvas Horizon Outrun Grid ---
+    function drawRetroHorizon(cx, cy, horizonY) {
+        // Draw vintage neon sun
+        const sunGrad = canvasCtx.createLinearGradient(cx, horizonY - 120, cx, horizonY);
+        sunGrad.addColorStop(0, '#ff007f');
+        sunGrad.addColorStop(1, '#ffcc00');
+        canvasCtx.fillStyle = sunGrad;
+        canvasCtx.beginPath();
+        canvasCtx.arc(cx, horizonY, 80, Math.PI, 0, false);
+        canvasCtx.fill();
+
+        // Retro horizontal sunset raster grid stripes
+        canvasCtx.fillStyle = '#0b0410';
+        for (let y = horizonY - 70; y < horizonY; y += 12) {
+            const stripeHeight = (y - (horizonY - 70)) / 10 + 2.5;
+            canvasCtx.fillRect(cx - 90, y, 180, stripeHeight);
+        }
+
+        // Draw Perspective wireframe Outrun grid
+        canvasCtx.strokeStyle = '#00f0ff';
+        canvasCtx.lineWidth = 1.5;
+
+        // Horizontals moving dynamically relative to automatic generation speed
+        let gridSpeed = 1 + (getPassiveRate() * 0.03);
+        gridOffset = (gridOffset + gridSpeed) % 40;
+
+        for (let i = 0; i < 11; i++) {
+            let y = horizonY + Math.pow(i, 2.1) * 2.2 + gridOffset;
+            if (y > canvas.height) continue;
+            if (y < horizonY) continue;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, y);
+            canvasCtx.lineTo(canvas.width, y);
+            canvasCtx.stroke();
+        }
+
+        // Vertical lines fanning out from vanishing point
+        const totalLines = 16;
+        for (let i = -totalLines/2; i <= totalLines/2; i++) {
+            let startX = cx + (i * 11);
+            let endX = cx + (i * 150);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(startX, horizonY);
+            canvasCtx.lineTo(endX, canvas.height);
+            canvasCtx.stroke();
+        }
+
+        // Thick separating pink horizon line
+        canvasCtx.strokeStyle = '#ff007f';
+        canvasCtx.lineWidth = 4;
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, horizonY);
+        canvasCtx.lineTo(canvas.width, horizonY);
+        canvasCtx.stroke();
+    }
+
+    // --- Render loop ---
+    function renderFXFrame() {
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const horizonY = cy + 40; // Horizon offset
+
+        // Render retro landscape
+        drawRetroHorizon(cx, cy, horizonY);
+
+        // Render Anomalies (Floating active drift targets)
+        if (activeAnomaly) {
+            activeAnomaly.pulse += 0.08;
+            activeAnomaly.lifetime--;
+
+            const scale = 1 + Math.sin(activeAnomaly.pulse) * 0.15;
+            canvasCtx.save();
+            canvasCtx.translate(activeAnomaly.x, activeAnomaly.y);
+            canvasCtx.scale(scale, scale);
+
+            canvasCtx.shadowBlur = 15;
+            canvasCtx.shadowColor = '#ffcc00';
+
+            canvasCtx.fillStyle = 'rgba(255, 204, 0, 0.2)';
+            canvasCtx.strokeStyle = '#ffcc00';
+            canvasCtx.lineWidth = 2;
+
+            canvasCtx.beginPath();
+            canvasCtx.arc(0, 0, activeAnomaly.radius, 0, Math.PI * 2);
+            canvasCtx.fill();
+            canvasCtx.stroke();
+
+            canvasCtx.fillStyle = '#ffffff';
+            canvasCtx.beginPath();
+            canvasCtx.arc(0, 0, 6, 0, Math.PI * 2);
+            canvasCtx.fill();
+
+            canvasCtx.restore();
+
+            if (activeAnomaly.lifetime <= 0) {
+                activeAnomaly = null;
+            }
+        }
+
+        // Render particles and floating text indicators
+        for (let i = dynamicFX.length - 1; i >= 0; i--) {
+            let p = dynamicFX[i];
+            
+            if (p.type === 'spark') {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= p.decay;
+                
+                canvasCtx.globalAlpha = p.alpha;
+                canvasCtx.fillStyle = p.color;
+                canvasCtx.beginPath();
+                canvasCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                canvasCtx.fill();
+            } 
+            else if (p.type === 'text') {
+                p.y += p.vy;
+                p.alpha -= p.decay;
+
+                canvasCtx.globalAlpha = p.alpha;
+                canvasCtx.font = "bold 24px 'VT323', monospace";
+                canvasCtx.fillStyle = '#00f0ff';
+                canvasCtx.textAlign = 'center';
+                canvasCtx.fillText(p.text, p.x, p.y);
+            }
+
+            if (p.alpha <= 0) {
+                dynamicFX.splice(i, 1);
+            }
+        }
+        
+        canvasCtx.globalAlpha = 1.0;
+        requestAnimationFrame(renderFXFrame);
+    }
+
+    // --- Game Logic Mechanics Update Frame ---
+    function updateGameFrame() {
+        const now = Date.now();
+        const elapsedSec = (now - state.lastTickTime) / 1000;
+        state.lastTickTime = now;
+
+        if (elapsedSec > 0) {
+            const passiveEarned = getPassiveRate() * elapsedSec;
+            state.energy += passiveEarned;
+            state.lifetimeEnergy += passiveEarned;
+
+            checkAchievements();
+            renderStats();
+        }
+    }
+
+    // --- Persistence System (Local Storage) ---
+    function saveGame() {
+        state.lastTickTime = Date.now();
+        localStorage.setItem('quantum_core_save', JSON.stringify(state));
+    }
+
+    function loadGame() {
+        const savedData = localStorage.getItem('quantum_core_save');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                state = { ...state, ...parsed };
+
+                const offlineDuration = (Date.now() - state.lastTickTime) / 1000;
+                if (offlineDuration > 10) {
+                    const rate = getPassiveRate();
+                    const offlineRevenue = rate * offlineDuration;
+                    if (offlineRevenue > 0) {
+                        state.energy += offlineRevenue;
+                        state.lifetimeEnergy += offlineRevenue;
+
+                        document.getElementById('offline-summary-text').innerText = `While cabinet registers were inactive for ${Math.floor(offlineDuration / 60)} minutes, your storage drives synthesized ${formatNum(offlineRevenue)} credits of core energy!`;
+                        document.getElementById('offline-modal').classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.error("Save load mismatch error. Defaulting parameters.");
+            }
+        }
+        state.lastTickTime = Date.now();
+        renderShop();
+        renderAchievements();
+        renderStats();
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    // --- Import / Export System ---
+    function exportSave() {
+        saveGame();
+        const base64Str = btoa(JSON.stringify(state));
+        navigator.clipboard.writeText(base64Str).then(() => {
+            alert("Cassette save data copied to clipboard successfully.");
+        }).catch(() => {
+            alert("Backup failed. Copy string: " + base64Str);
+        });
+    }
+
+    function promptImport() {
+        const code = prompt("Enter/Paste your cassette memory register code:");
+        if (code) {
+            try {
+                const parsed = JSON.parse(atob(code));
+                state = { ...state, ...parsed };
+                state.lastTickTime = Date.now();
+                saveGame();
+                renderShop();
+                renderAchievements();
+                renderStats();
+                alert("Game state loaded successfully.");
+            } catch (err) {
+                alert("Failed to read cassette code.");
+            }
+        }
+    }
+
+    // --- Core Interval Schedules ---
+    loadGame();
+    setInterval(updateGameFrame, 30); // 30ms scroll delta calculations
+    setInterval(saveGame, 10000);     // Auto-saving to local storage
+    setInterval(spawnAnomaly, 12000); // Trigger drift target attempts
+
+    // Render Canvas Loop initialization
+    renderFXFrame();
+</script>
+</body>
+</html>

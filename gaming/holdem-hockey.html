@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Hold 'em Style 2D Air Hockey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-bg: #11141a;
+            --panel-bg: rgba(255, 255, 255, 0.03);
+            --gold-accent: #c5a059;
+            --blue-chip: #2155cd;
+            --red-chip: #b71c1c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #f5f5f0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1000px;
+            width: 100%;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .game-container:fullscreen {
+            background-color: var(--dark-bg);
+            padding: 40px;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 25px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+            color: var(--gold-accent);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .scoreboard {
+            display: flex;
+            gap: 15px;
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 110px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .score-box.player { border-color: var(--blue-chip); }
+        .score-box.ai { border-color: var(--red-chip); }
+
+        .score-box .label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+            color: #8da2bb;
+        }
+
+        .score-box .score {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+        }
+
+        .icon-btn {
+            background: linear-gradient(135deg, #c5a059, #9c7c3d);
+            border: 1px solid #7c6130;
+            color: #11141a;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(197, 160, 89, 0.2);
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .icon-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 15px rgba(197, 160, 89, 0.4);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 20px;
+            width: 100%;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .panel h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold-accent);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+
+        .panel p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #a0aab5;
+            margin-bottom: 12px;
+        }
+
+        .panel ul {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #a0aab5;
+            list-style-type: none;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+            padding-left: 12px;
+            position: relative;
+        }
+
+        .panel li::before {
+            content: "♦";
+            color: var(--gold-accent);
+            position: absolute;
+            left: 0;
+            font-size: 0.75rem;
+        }
+
+        /* Canvas & Touch Controls Container */
+        .table-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* Virtual Controllers CSS */
+        .virtual-controller {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            z-index: 5;
+            opacity: 0.45;
+            transition: opacity 0.2s;
+        }
+
+        .virtual-controller:hover, .virtual-controller:active {
+            opacity: 0.9;
+        }
+
+        .virtual-controller.top {
+            top: 25px;
+            left: 25px;
+        }
+
+        .virtual-controller.bottom {
+            bottom: 25px;
+            right: 25px;
+        }
+
+        .v-row {
+            display: flex;
+            gap: 5px;
+        }
+
+        .v-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        .v-btn:active {
+            background: var(--gold-accent);
+            color: #11141a;
+            border-color: #7c6130;
+        }
+
+        /* Overlay Formatting */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay-content {
+            background: linear-gradient(135deg, #18221c, #0e1411);
+            border: 2px solid var(--gold-accent);
+            border-radius: 16px;
+            padding: 35px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .overlay h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.2rem;
+            color: var(--gold-accent);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+        }
+
+        .overlay p {
+            font-size: 0.95rem;
+            color: #a6b5a9;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .menu-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f5f5f0;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-family: 'Cinzel', serif;
+            border-radius: 6px;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn:hover {
+            border-color: var(--gold-accent);
+        }
+
+        .mode-btn.selected {
+            background: linear-gradient(135deg, #c5a059, #9c7c3d);
+            border-color: #7c6130;
+            color: #11141a;
+            font-weight: 800;
+        }
+
+        .skin-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .skin-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f5f5f0;
+            padding: 10px;
+            font-size: 0.85rem;
+            font-family: 'Cinzel', serif;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .skin-btn:hover {
+            background: rgba(197, 160, 89, 0.1);
+            border-color: var(--gold-accent);
+        }
+
+        .skin-btn.selected {
+            background: rgba(197, 160, 89, 0.2);
+            border-color: var(--gold-accent);
+            color: var(--gold-accent);
+            font-weight: 800;
+        }
+
+        .controls-info-block {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px dashed rgba(197, 160, 89, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, #c5a059, #9c7c3d);
+            color: #11141a;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(197, 160, 89, 0.3);
+            transition: transform 0.1s, box-shadow 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(197, 160, 89, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 800px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container" id="fullscreen-target">
+    <header>
+        <h1>HOLD'EM TABLE</h1>
+        <div class="header-controls">
+            <div class="scoreboard">
+                <div class="score-box player">
+                    <span class="label" id="player-label">PLAYER ($500)</span>
+                    <span id="player-score" class="score">0</span>
+                </div>
+                <div class="score-box ai">
+                    <span class="label" id="ai-label">AI ($100)</span>
+                    <span id="ai-score" class="score">0</span>
+                </div>
+            </div>
+            <!-- Controllers visibility toggle -->
+            <button id="controls-toggle-btn" class="icon-btn" title="Toggle Touch Controllers">🎮</button>
+            <button id="fullscreen-btn" class="icon-btn" title="Toggle Fullscreen">⛶</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <!-- Sidebar information panel -->
+        <aside class="panel">
+            <h3>Table Rules</h3>
+            <p id="level-desc">Active Skin: High Limit Stakes ($500 vs $100)</p>
+            <ul id="dynamic-rules-list">
+                <li>Control Blue Mallet with mouse/touch or Arrow Keys.</li>
+                <li>The house AI defends its goals based on selected level.</li>
+                <li>The puck is a standard Dealer Button.</li>
+                <li>If the puck sits inactive, a table nudge will clear it.</li>
+            </ul>
+        </aside>
+
+        <!-- Air Hockey Canvas Arena Wrapper -->
+        <div class="table-area" id="table-area">
+            
+            <!-- Virtual Controller Top (WASD) -->
+            <div id="v-ctrl-top" class="virtual-controller top hidden">
+                <button class="v-btn v-up" data-key="KeyW">W</button>
+                <div class="v-row">
+                    <button class="v-btn v-left" data-key="KeyA">A</button>
+                    <button class="v-btn v-down" data-key="KeyS">S</button>
+                    <button class="v-btn v-right" data-key="KeyD">D</button>
+                </div>
+            </div>
+
+            <canvas id="hockeyCanvas" width="480" height="640"></canvas>
+
+            <!-- Virtual Controller Bottom (Arrow Keys) -->
+            <div id="v-ctrl-bottom" class="virtual-controller bottom hidden">
+                <button class="v-btn v-up" data-key="ArrowUp">▲</button>
+                <div class="v-row">
+                    <button class="v-btn v-left" data-key="ArrowLeft">◀</button>
+                    <button class="v-btn v-down" data-key="ArrowDown">▼</button>
+                    <button class="v-btn v-right" data-key="ArrowRight">▶</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Start Match Overlay -->
+<div id="start-overlay" class="overlay">
+    <div class="overlay-content">
+        <h2>STAKES & SKINS</h2>
+        <p>Select your game mode and chip styles. Skins adjust mallet colors and set AI speed constraints in PvE mode.</p>
+
+        <!-- Mode Toggle -->
+        <div class="menu-row">
+            <button class="mode-btn selected" id="mode-pve">VS COMPUTER</button>
+            <button class="mode-btn" id="mode-pvp">2-PLAYER PVP</button>
+        </div>
+        
+        <!-- PvE Difficulty Configuration -->
+        <div class="skin-selection" id="pve-skin-panel">
+            <button class="skin-btn" data-skin="1">CLASSIC STAKES (Blue & Red Chips)</button>
+            <button class="skin-btn selected" data-skin="2">HIGH LIMIT STAKES (Black & Green Chips)</button>
+            <button class="skin-btn" data-skin="3">ROYAL VIP STAKES (Gold & Purple Chips)</button>
+        </div>
+
+        <!-- PvP Controls Info Panel -->
+        <div class="controls-info-block hidden" id="pvp-controls-panel">
+            <h4 style="font-family:'Cinzel',serif; color:var(--gold-accent); margin-bottom:8px;">Local PvP Controls</h4>
+            <p style="margin-bottom:6px; color:#fff;"><strong>Player 1 (Bottom):</strong> Mouse, Arrows, or Bottom D-Pad</p>
+            <p style="margin-bottom:0; color:#fff;"><strong>Player 2 (Top):</strong> WASD Keys or Top D-Pad</p>
+        </div>
+
+        <button id="start-btn" class="btn">BUY IN</button>
+    </div>
+</div>
+
+<!-- Match Over Overlay -->
+<div id="gameover-overlay" class="overlay hidden">
+    <div class="overlay-content">
+        <h2 id="winner-title">MATCH OVER</h2>
+        <p id="winner-text">Game over description.</p>
+        <button id="restart-btn" class="btn">RESTART</button>
+    </div>
+</div>
+
+<script>
+    // --- Casino Sound Effects Synth (Web Audio API) ---
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioCtxClass();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'clink') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1700, now);
+            osc.frequency.exponentialRampToValueAtTime(1950, now + 0.04);
+
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + 0.05);
+        } 
+        else if (type === 'thud') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(100, now);
+
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + 0.08);
+        } 
+        else if (type === 'sweep') {
+            for (let i = 0; i < 4; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1500 - (i * 180), audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.06);
+                }, i * 50);
+            }
+        }
+    }
+
+    // --- Physics and Core Setup ---
+    const canvas = document.getElementById('hockeyCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const railWidth = 16;
+    const goalWidth = 140;
+    const goalLeft = (width - goalWidth) / 2;
+    const goalRight = goalLeft + goalWidth;
+
+    // Entity declarations
+    const puck = {
+        x: width / 2, y: height / 2,
+        vx: 0, vy: 0,
+        radius: 14,
+        maxSpeed: 14,
+        angle: 0,
+        rotationSpeed: 0
+    };
+
+    const player = {
+        x: width / 2, y: height - 80,
+        vx: 0, vy: 0,
+        radius: 25,
+        targetX: width / 2, targetY: height - 80,
+        lastX: width / 2, lastY: height - 80
+    };
+
+    const ai = {
+        x: width / 2, y: 80,
+        vx: 0, vy: 0,
+        radius: 25,
+        speed: 4.8,
+        delay: 0.08,
+        targetX: width / 2, targetY: 80,
+        filteredTargetX: width / 2, filteredTargetY: 80
+    };
+
+    let playerScore = 0;
+    let aiScore = 0;
+    let gameState = 'START'; // START, PLAYING, GAMEOVER
+    let gameMode = 'PvE'; // PvE, PvP
+    let particles = [];
+    
+    // Anti-stuck state
+    let stuckTimer = 0;
+
+    // Keyboard controls state
+    const keysPressed = {};
+    let controlMethodP1 = 'mouse'; // 'mouse' or 'keyboard'
+
+    // Show/Hide touch controllers
+    let showVirtualControls = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+    // Stakes & Chip Skins configurations
+    let currentSkin = 2; 
+    const skinsConfig = {
+        1: {
+            playerColor: '#2155cd', // Blue
+            aiColor: '#b71c1c',     // Red
+            playerDenom: '$50',
+            aiDenom: '$10',
+            label: "Classic Stakes ($50 vs $10)",
+            desc: "Active Skin: Classic Stakes ($50 vs $10)",
+            aiSpeed: 3.2,
+            aiDelay: 0.05
+        },
+        2: {
+            playerColor: '#1d1d1d', // Black
+            aiColor: '#2e7d32',     // Green
+            playerDenom: '$500',
+            aiDenom: '$100',
+            label: "High Limit Stakes ($500 vs $100)",
+            desc: "Active Skin: High Limit Stakes ($500 vs $100)",
+            aiSpeed: 5.0,
+            aiDelay: 0.09
+        },
+        3: {
+            playerColor: '#d4af37', // Gold
+            aiColor: '#7b1fa2',     // Purple
+            playerDenom: '$10,000',
+            aiDenom: '$5,000',
+            label: "Royal VIP Stakes ($10,000 vs $5,000)",
+            desc: "Active Skin: Royal VIP Stakes ($10,000 vs $5,000)",
+            aiSpeed: 7.8,
+            aiDelay: 0.14
+        }
+    };
+
+    function applySkinConfig(skinId) {
+        currentSkin = skinId;
+        const config = skinsConfig[skinId];
+        ai.speed = config.aiSpeed;
+        ai.delay = config.aiDelay;
+        
+        if (gameMode === 'PvE') {
+            document.getElementById('player-label').innerText = `PLAYER (${config.playerDenom})`;
+            document.getElementById('ai-label').innerText = `AI (${config.aiDenom})`;
+            document.getElementById('level-desc').innerText = config.desc;
+        }
+    }
+
+    function updateDynamicRules() {
+        const rulesList = document.getElementById('dynamic-rules-list');
+        const config = skinsConfig[currentSkin];
+        if (gameMode === 'PvP') {
+            rulesList.innerHTML = `
+                <li><strong>Player 1 (Bottom):</strong> Controlled by Mouse/Touch, Arrows, or D-Pad.</li>
+                <li><strong>Player 2 (Top):</strong> Controlled by keyboard <b style="color:var(--gold-accent)">W-A-S-D</b> keys, or top screen Touch/D-Pad.</li>
+                <li>The puck is a standard Dealer Button.</li>
+                <li>If the puck sits inactive, a table nudge will clear it.</li>
+            `;
+            document.getElementById('player-label').innerText = `PLAYER 1 (${config.playerDenom})`;
+            document.getElementById('ai-label').innerText = `PLAYER 2 (${config.playerDenom})`;
+            document.getElementById('level-desc').innerText = "Stakes: 2-Player Local PvP (Visual Style: " + config.playerDenom + " Chips)";
+        } else {
+            rulesList.innerHTML = `
+                <li>Control Blue Mallet with Mouse/Touch, Arrows, or D-Pad.</li>
+                <li>The house AI defends its goals based on selected stakes skin.</li>
+                <li>The puck is a standard Dealer Button.</li>
+                <li>If the puck sits inactive, a table nudge will clear it.</li>
+            `;
+            applySkinConfig(currentSkin);
+        }
+        updateVirtualControlsVisibility();
+    }
+
+    function updateVirtualControlsVisibility() {
+        const vTop = document.getElementById('v-ctrl-top');
+        const vBottom = document.getElementById('v-ctrl-bottom');
+
+        if (showVirtualControls && gameState === 'PLAYING') {
+            vBottom.classList.remove('hidden');
+            if (gameMode === 'PvP') {
+                vTop.classList.remove('hidden');
+            } else {
+                vTop.classList.add('hidden');
+            }
+        } else {
+            vTop.classList.add('hidden');
+            vBottom.classList.add('hidden');
+        }
+    }
+
+    // Spark Particles
+    function spawnSparks(x, y, color) {
+        for (let i = 0; i < 12; i++) {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                color,
+                life: 1.0,
+                decay: 0.03 + Math.random() * 0.04,
+                size: 2 + Math.random() * 2
+            });
+        }
+    }
+
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function drawParticles() {
+        particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    function resetPositions(scorer) {
+        puck.x = width / 2;
+        puck.y = height / 2;
+        puck.vx = 0;
+        puck.vy = 0;
+        puck.rotationSpeed = 0;
+        stuckTimer = 0;
+
+        player.x = width / 2;
+        player.y = height - 80;
+        player.targetX = width / 2;
+        player.targetY = height - 80;
+
+        ai.x = width / 2;
+        ai.y = 80;
+        ai.targetX = width / 2;
+        ai.targetY = 80;
+        ai.filteredTargetX = width / 2;
+        ai.filteredTargetY = 80;
+
+        if (scorer) {
+            puck.vy = scorer === 'player' ? -3 : 3;
+        }
+    }
+
+    function handleGoal(winner) {
+        const config = skinsConfig[currentSkin];
+        playSound('sweep');
+        spawnSparks(puck.x, winner === 'player' ? 10 : height - 10, winner === 'player' ? config.playerColor : config.aiColor);
+
+        if (winner === 'player') {
+            playerScore++;
+        } else {
+            aiScore++;
+        }
+
+        document.getElementById('player-score').innerText = playerScore;
+        document.getElementById('ai-score').innerText = aiScore;
+
+        if (playerScore >= 7 || aiScore >= 7) {
+            gameState = 'GAMEOVER';
+            updateVirtualControlsVisibility();
+
+            let winnerTextStr = "";
+            if (gameMode === 'PvP') {
+                winnerTextStr = playerScore >= 7 ? "Player 1 wins the match and claims the pot!" : "Player 2 wins the match and claims the pot!";
+                document.getElementById('winner-title').innerText = playerScore >= 7 ? "P1 WINS!" : "P2 WINS!";
+            } else {
+                winnerTextStr = playerScore >= 7 ? "You cleared the table and took the stakes pot! Stack collected." : "The house cleared you out. Better luck on the next buy-in.";
+                document.getElementById('winner-title').innerText = playerScore >= 7 ? "YOU WIN!" : "AI WINS!";
+            }
+            
+            document.getElementById('winner-text').innerText = winnerTextStr;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+        } else {
+            resetPositions(winner);
+        }
+    }
+
+    // --- Physics Processing ---
+    function processPhysics() {
+        // 1. Move Player Mallet (Player 1)
+        if (controlMethodP1 === 'keyboard') {
+            const p1Speed = 6.5;
+            if (keysPressed['ArrowUp']) player.targetY -= p1Speed;
+            if (keysPressed['ArrowDown']) player.targetY += p1Speed;
+            if (keysPressed['ArrowLeft']) player.targetX -= p1Speed;
+            if (keysPressed['ArrowRight']) player.targetX += p1Speed;
+        }
+
+        player.vx = (player.targetX - player.x) * 0.35;
+        player.vy = (player.targetY - player.y) * 0.35;
+        player.x += player.vx;
+        player.y += player.vy;
+
+        // Force boundaries on player side
+        player.x = Math.max(railWidth + player.radius, Math.min(width - railWidth - player.radius, player.x));
+        player.y = Math.max(height / 2 + player.radius, Math.min(height - railWidth - player.radius, player.y));
+
+        // 2. Move Opponent Mallet (AI vs Keyboard PvP Player 2)
+        if (gameMode === 'PvP') {
+            const p2Speed = 6.5;
+            if (keysPressed['KeyW'] || keysPressed['Keyw']) ai.targetY -= p2Speed;
+            if (keysPressed['KeyS'] || keysPressed['Keys']) ai.targetY += p2Speed;
+            if (keysPressed['KeyA'] || keysPressed['Keya']) ai.targetX -= p2Speed;
+            if (keysPressed['KeyD'] || keysPressed['Keyd']) ai.targetX += p2Speed;
+
+            // Restrict Player 2 boundaries to upper half
+            ai.targetX = Math.max(railWidth + ai.radius, Math.min(width - railWidth - ai.radius, ai.targetX));
+            ai.targetY = Math.max(railWidth + ai.radius, Math.min(height / 2 - ai.radius, ai.targetY));
+
+            ai.vx = (ai.targetX - ai.x) * 0.35;
+            ai.vy = (ai.targetY - ai.y) * 0.35;
+            ai.x += ai.vx;
+            ai.y += ai.vy;
+        } else {
+            // Glitch-Free Steering House AI Mode
+            let aiTargetX = width / 2;
+            let aiTargetY = 80;
+
+            if (puck.y < height / 2) {
+                if (puck.y < ai.y) {
+                    aiTargetX = puck.x > width / 2 ? puck.x - 40 : puck.x + 40;
+                    aiTargetY = ai.y + 20;
+                } else {
+                    aiTargetX = puck.x;
+                    aiTargetY = puck.y - 12;
+                }
+            } else {
+                aiTargetX = width / 2;
+                aiTargetY = 80;
+            }
+
+            // Low-pass target filtering to completely filter jitter and high-speed vibration
+            ai.filteredTargetX += (aiTargetX - ai.filteredTargetX) * 0.18;
+            ai.filteredTargetY += (aiTargetY - ai.filteredTargetY) * 0.18;
+
+            // Clean vector-steering model with proportional arrival dampening
+            let dx = ai.filteredTargetX - ai.x;
+            let dy = ai.filteredTargetY - ai.y;
+            let dist = Math.hypot(dx, dy);
+
+            if (dist > 1.2) {
+                let desiredVx = (dx / dist) * ai.speed;
+                let desiredVy = (dy / dist) * ai.speed;
+
+                // Soft deceleration when close to target to prevent oscillating glitches
+                if (dist < 18) {
+                    desiredVx *= (dist / 18);
+                    desiredVy *= (dist / 18);
+                }
+
+                // Smoothly adjust current velocities (simulating weight/mass)
+                ai.vx += (desiredVx - ai.vx) * 0.16;
+                ai.vy += (desiredVy - ai.vy) * 0.16;
+            } else {
+                ai.vx *= 0.75;
+                ai.vy *= 0.75;
+            }
+
+            ai.x += ai.vx;
+            ai.y += ai.vy;
+        }
+
+        ai.x = Math.max(railWidth + ai.radius, Math.min(width - railWidth - ai.radius, ai.x));
+        ai.y = Math.max(railWidth + ai.radius, Math.min(height / 2 - ai.radius, ai.y));
+
+        // 3. Puck Movement and Table Friction
+        puck.vx *= 0.993;
+        puck.vy *= 0.993;
+        puck.x += puck.vx;
+        puck.y += puck.vy;
+
+        // Rotate puck relative to speed
+        puck.angle += puck.rotationSpeed;
+        puck.rotationSpeed = Math.hypot(puck.vx, puck.vy) * 0.005;
+
+        // 4. Stuck Detection and Table Nudge System
+        if (Math.hypot(puck.vx, puck.vy) < 0.25) {
+            stuckTimer++;
+            if (stuckTimer > 90) { // Approx 1.5s at 60fps
+                let nudgeX = (puck.x < width / 2) ? 4 : -4;
+                let nudgeY = (puck.y < height / 2) ? 4 : -4;
+                
+                puck.vx = nudgeX + (Math.random() - 0.5) * 2;
+                puck.vy = nudgeY + (Math.random() - 0.5) * 2;
+                stuckTimer = 0;
+                playSound('clink');
+            }
+        } else {
+            stuckTimer = 0;
+        }
+
+        // 5. Puck Wall Collisions
+        if (puck.x - puck.radius < railWidth) {
+            puck.x = railWidth + puck.radius;
+            puck.vx = -puck.vx * 0.85;
+            playSound('thud');
+        } else if (puck.x + puck.radius > width - railWidth) {
+            puck.x = width - railWidth - puck.radius;
+            puck.vx = -puck.vx * 0.85;
+            playSound('thud');
+        }
+
+        // Top Wall Bounds (Defenders Guard Goal)
+        if (puck.y - puck.radius < railWidth) {
+            if (puck.x > goalLeft && puck.x < goalRight) {
+                handleGoal('player');
+            } else {
+                puck.y = railWidth + puck.radius;
+                puck.vy = -puck.vy * 0.85;
+                playSound('thud');
+            }
+        }
+        // Bottom Wall Bounds
+        else if (puck.y + puck.radius > height - railWidth) {
+            if (puck.x > goalLeft && puck.x < goalRight) {
+                handleGoal('ai');
+            } else {
+                puck.y = height - railWidth - puck.radius;
+                puck.vy = -puck.vy * 0.85;
+                playSound('thud');
+            }
+        }
+
+        // 6. Elastic Mallet-to-Puck Collisions
+        handleMalletCollision(player);
+        handleMalletCollision(ai);
+    }
+
+    function handleMalletCollision(mallet) {
+        let dx = puck.x - mallet.x;
+        let dy = puck.y - mallet.y;
+        let dist = Math.hypot(dx, dy);
+        let minDist = puck.radius + mallet.radius;
+
+        if (dist < minDist) {
+            let overlap = minDist - dist;
+            let nx = dx / dist;
+            let ny = dy / dist;
+
+            // Push the puck outside the mallet's physical radius
+            puck.x += nx * overlap;
+
+            // CRITICAL DEFENSIVE BOUNDARY RE-CHECK (Clamping to eliminate wall tunneling clips)
+            puck.x = Math.max(railWidth + puck.radius, Math.min(width - railWidth - puck.radius, puck.x));
+            if (puck.y - puck.radius < railWidth) {
+                if (!(puck.x > goalLeft && puck.x < goalRight)) {
+                    puck.y = railWidth + puck.radius;
+                }
+            } else if (puck.y + puck.radius > height - railWidth) {
+                if (!(puck.x > goalLeft && puck.x < goalRight)) {
+                    puck.y = height - railWidth - puck.radius;
+                }
+            }
+
+            // Compute relative speed impacts on normal axis
+            let rvx = puck.vx - mallet.vx;
+            let rvy = puck.vy - mallet.vy;
+            let velAlongNormal = rvx * nx + rvy * ny;
+
+            if (velAlongNormal < 0) {
+                let restitution = 0.85;
+                let impulse = -(1 + restitution) * velAlongNormal;
+                puck.vx += impulse * nx;
+                puck.vy += impulse * ny;
+
+                puck.vx += mallet.vx * 0.45;
+                puck.vy += mallet.vy * 0.45;
+
+                let speed = Math.hypot(puck.vx, puck.vy);
+                if (speed > puck.maxSpeed) {
+                    puck.vx = (puck.vx / speed) * puck.maxSpeed;
+                    puck.vy = (puck.vy / speed) * puck.maxSpeed;
+                }
+                
+                puck.rotationSpeed = (Math.random() - 0.5) * 0.2;
+                playSound('clink');
+            }
+        }
+    }
+
+    // --- Render Rendering Functions ---
+    function drawPlayfield() {
+        ctx.fillStyle = '#0f381e';
+        ctx.fillRect(0, 0, width, height);
+
+        let grad = ctx.createRadialGradient(width/2, height/2, 100, width/2, height/2, width * 0.8);
+        grad.addColorStop(0, 'rgba(17, 74, 36, 0.1)');
+        grad.addColorStop(1, 'rgba(5, 25, 10, 0.85)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Mahogany wood rails
+        ctx.fillStyle = '#3a1f11';
+        ctx.fillRect(0, 0, width, railWidth);
+        ctx.fillRect(0, height - railWidth, width, railWidth);
+        ctx.fillRect(0, 0, railWidth, height);
+        ctx.fillRect(width - railWidth, 0, railWidth, height);
+
+        // Inner gold trim rail border
+        ctx.strokeStyle = '#856424';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(railWidth - 1, railWidth - 1, width - (railWidth - 1) * 2, height - (railWidth - 1) * 2);
+
+        // Goal cutouts
+        ctx.fillStyle = '#050c07';
+        ctx.fillRect(goalLeft, 0, goalWidth, railWidth);
+        ctx.fillRect(goalLeft, height - railWidth, goalWidth, railWidth);
+
+        // Center line
+        ctx.strokeStyle = 'rgba(197, 160, 89, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(railWidth, height / 2);
+        ctx.lineTo(width - railWidth, height / 2);
+        ctx.stroke();
+
+        // Center circle
+        ctx.beginPath();
+        ctx.arc(width/2, height/2, 80, 0, Math.PI*2);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.globalAlpha = 0.05;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 110px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('♠ ♥ ♦ ♣', width / 2, height / 2);
+        ctx.restore();
+
+        // Draw gold racetrack lines
+        ctx.strokeStyle = 'rgba(197, 160, 89, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(railWidth + 20, railWidth + 20, width - (railWidth + 20) * 2, height - (railWidth + 20) * 2, 25);
+        ctx.stroke();
+    }
+
+    function drawChipMallet(x, y, radius, color, denomination) {
+        ctx.save();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowOffsetY = 5;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 8]);
+        ctx.beginPath();
+        ctx.arc(x, y, radius - 4, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, radius - 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, radius - 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#111111';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(denomination, x, y);
+
+        ctx.restore();
+    }
+
+    function drawPuck() {
+        ctx.save();
+        ctx.translate(puck.x, puck.y);
+        ctx.rotate(puck.angle);
+
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowOffsetY = 3;
+
+        ctx.fillStyle = '#fbfbf8';
+        ctx.beginPath();
+        ctx.arc(0, 0, puck.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = '#d4d4b8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, puck.radius - 3, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#1e1e1a';
+        ctx.font = 'bold 6.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DEALER', 0, 0);
+
+        ctx.restore();
+    }
+
+    // --- Inputs & Layout Handlers ---
+    let isPointerLocked = false;
+    document.addEventListener('pointerlockchange', () => {
+        isPointerLocked = (document.pointerLockElement === canvas);
+    });
+
+    canvas.addEventListener('mousedown', () => {
+        if (gameState === 'PLAYING' && document.fullscreenElement) {
+            canvas.requestPointerLock();
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (gameState !== 'PLAYING') return;
+        const rect = canvas.getBoundingClientRect();
+        
+        // Switch to mouse mode if movement surpasses noise floor thresholds
+        if (Math.abs(e.movementX) > 1 || Math.abs(e.movementY) > 1) {
+            controlMethodP1 = 'mouse';
+        }
+
+        if (controlMethodP1 === 'mouse') {
+            if (isPointerLocked) {
+                // Accumulate movement delta offsets
+                player.targetX += e.movementX * 1.25;
+                player.targetY += e.movementY * 1.25;
+            } else {
+                player.targetX = e.clientX - rect.left;
+                player.targetY = e.clientY - rect.top;
+            }
+        }
+
+        // Clamp positions
+        player.targetX = Math.max(railWidth + player.radius, Math.min(width - railWidth - player.radius, player.targetX));
+        player.targetY = Math.max(height / 2 + player.radius, Math.min(height - railWidth - player.radius, player.targetY));
+    });
+
+    // Multi-touch tracking support
+    function handleTouch(e) {
+        if (gameState !== 'PLAYING') return;
+
+        // Bypass touch actions if it touches on-screen D-Pad elements
+        let isVirtualTouch = false;
+        for (let i = 0; i < e.touches.length; i++) {
+            if (e.touches[i].target.classList.contains('v-btn')) {
+                isVirtualTouch = true;
+            }
+        }
+        if (isVirtualTouch) return;
+
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        controlMethodP1 = 'mouse';
+
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const tx = touch.clientX - rect.left;
+            const ty = touch.clientY - rect.top;
+
+            if (ty > height / 2) {
+                player.targetX = tx;
+                player.targetY = ty;
+            } else if (gameMode === 'PvP') {
+                ai.targetX = tx;
+                ai.targetY = ty;
+            }
+        }
+    }
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    canvas.addEventListener('touchmove', handleTouch, { passive: false });
+
+    // Keyboard capture mapping
+    window.addEventListener('keydown', (e) => {
+        keysPressed[e.code] = true;
+        if (e.code.startsWith('Arrow')) {
+            controlMethodP1 = 'keyboard';
+        }
+    });
+    window.addEventListener('keyup', (e) => {
+        keysPressed[e.code] = false;
+    });
+
+    // Virtual D-pad touch actions
+    const vButtons = document.querySelectorAll('.v-btn');
+    vButtons.forEach(btn => {
+        const keyCode = btn.getAttribute('data-key');
+        
+        const press = (e) => {
+            e.preventDefault();
+            keysPressed[keyCode] = true;
+            if (keyCode.startsWith('Arrow')) {
+                controlMethodP1 = 'keyboard';
+            }
+        };
+        const release = (e) => {
+            e.preventDefault();
+            keysPressed[keyCode] = false;
+        };
+
+        btn.addEventListener('mousedown', press);
+        btn.addEventListener('mouseup', release);
+        btn.addEventListener('mouseleave', release);
+
+        btn.addEventListener('touchstart', press, { passive: false });
+        btn.addEventListener('touchend', release, { passive: false });
+        btn.addEventListener('touchcancel', release, { passive: false });
+    });
+
+    // Game Mode Toggles inside Selection Menu
+    document.getElementById('mode-pve').addEventListener('click', () => {
+        gameMode = 'PvE';
+        document.getElementById('mode-pve').classList.add('selected');
+        document.getElementById('mode-pvp').classList.remove('selected');
+        
+        document.getElementById('pve-skin-panel').classList.remove('hidden');
+        document.getElementById('pvp-controls-panel').classList.add('hidden');
+    });
+
+    document.getElementById('mode-pvp').addEventListener('click', () => {
+        gameMode = 'PvP';
+        document.getElementById('mode-pvp').classList.add('selected');
+        document.getElementById('mode-pve').classList.remove('selected');
+
+        document.getElementById('pve-skin-panel').classList.add('hidden');
+        document.getElementById('pvp-controls-panel').classList.remove('hidden');
+    });
+
+    // Skin selection listeners
+    const skinButtons = document.querySelectorAll('.skin-btn');
+    skinButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            skinButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            applySkinConfig(parseInt(btn.getAttribute('data-skin')));
+        });
+    });
+
+    // Controllers toggle button inside header
+    document.getElementById('controls-toggle-btn').addEventListener('click', () => {
+        showVirtualControls = !showVirtualControls;
+        updateVirtualControlsVisibility();
+    });
+
+    // Fullscreen toggler
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    fullscreenBtn.addEventListener('click', () => {
+        const container = document.getElementById('fullscreen-target');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().then(() => {
+                fullscreenBtn.innerText = "⛶";
+                setTimeout(() => {
+                    canvas.requestPointerLock();
+                }, 250);
+            }).catch(err => {
+                console.error(`Fullscreen request error: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                fullscreenBtn.innerText = "⛶";
+            });
+        }
+    });
+
+    // Overlay handlers
+    document.getElementById('start-btn').addEventListener('click', () => {
+        initAudio();
+        document.getElementById('start-overlay').classList.add('hidden');
+        playerScore = 0;
+        aiScore = 0;
+        document.getElementById('player-score').innerText = 0;
+        document.getElementById('ai-score').innerText = 0;
+        
+        updateDynamicRules();
+        resetPositions();
+        gameState = 'PLAYING';
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        document.getElementById('gameover-overlay').classList.add('hidden');
+        playerScore = 0;
+        aiScore = 0;
+        document.getElementById('player-score').innerText = 0;
+        document.getElementById('ai-score').innerText = 0;
+        
+        updateDynamicRules();
+        resetPositions();
+        gameState = 'PLAYING';
+    });
+
+    // --- Master Loop ---
+    function loop() {
+        if (gameState === 'PLAYING') {
+            processPhysics();
+        }
+
+        updateParticles();
+
+        ctx.clearRect(0, 0, width, height);
+        drawPlayfield();
+        drawPuck();
+        
+        const config = skinsConfig[currentSkin];
+        drawChipMallet(player.x, player.y, player.radius, config.playerColor, config.playerDenom); // Player Blue Chip
+        drawChipMallet(ai.x, ai.y, ai.radius, config.aiColor, gameMode === 'PvP' ? config.playerColor : config.aiColor); // Opponent Chip
+        drawParticles();
+
+        requestAnimationFrame(loop);
+    }
+
+    // Initialize stakes skin state 
+    applySkinConfig(2);
+
+    // Initialize render cycle
+    loop();
+</script>
+</body>
+</html>

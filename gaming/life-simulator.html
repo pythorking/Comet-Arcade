@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Life Simulator</title>
+  <link rel="icon" href="site-icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d141c;
+      --panel: #172232;
+      --panel-2: #223044;
+      --text: #f6f3ea;
+      --muted: #b6c1cf;
+      --line: #33455d;
+      --gold: #ffcc66;
+      --green: #66d18f;
+      --blue: #70b8ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(112, 184, 255, 0.22), transparent 26rem),
+        linear-gradient(180deg, #121e2b, var(--bg));
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 22px;
+    }
+
+    header,
+    .panel-head,
+    .controls {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    a,
+    button {
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+    }
+
+    a,
+    button {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      min-height: 42px;
+      padding: 0 14px;
+    }
+
+    h1,
+    h2,
+    p { margin: 0; }
+
+    h1 { font-size: 34px; }
+
+    .eyebrow {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    main {
+      margin: 18px auto 0;
+      max-width: 980px;
+    }
+
+    .stats-grid,
+    .choice-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin: 18px 0;
+    }
+
+    .stat,
+    .story-box {
+      background: rgba(23, 34, 50, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      display: block;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .bar {
+      background: #0d141c;
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      background: var(--green);
+      height: 100%;
+      transition: width 180ms ease;
+    }
+
+    .story-box p {
+      font-size: 22px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .choice-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .choice {
+      background: var(--panel-2);
+      min-height: 86px;
+      text-align: left;
+    }
+
+    .timeline {
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 18px 0 0;
+      padding-left: 22px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      header,
+      .panel-head { align-items: stretch; flex-direction: column; }
+      .stats-grid,
+      .choice-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">Story choices</p>
+      <h1>Life Simulator</h1>
+    </div>
+    <a href="index.html" target="_top">Home</a>
+  </header>
+
+  <main>
+    <div class="panel-head">
+      <p>Make choices, grow your stats, and see where life lands.</p>
+      <button id="life-reset" type="button">New Life</button>
+    </div>
+    <div class="stats-grid" id="life-stats"></div>
+    <div class="story-box">
+      <p id="life-story"></p>
+      <div class="choice-grid" id="life-choices"></div>
+    </div>
+    <ol class="timeline" id="life-log" aria-label="Life events"></ol>
+  </main>
+
+  <script>
+    const lifeStatsEl = document.getElementById("life-stats");
+    const lifeStoryEl = document.getElementById("life-story");
+    const lifeChoicesEl = document.getElementById("life-choices");
+    const lifeLogEl = document.getElementById("life-log");
+    const lifeReset = document.getElementById("life-reset");
+    let life;
+    const statNames = ["happy", "health", "money", "smarts"];
+    const scenarios = [
+      {
+        text: "You are 18 and deciding what to do after school.",
+        choices: [
+          ["Study game design", { smarts: 16, money: -8, happy: 3 }, "You learn how to build worlds people want to play."],
+          ["Start a small business", { money: 10, smarts: 6, health: -4 }, "Your first business is messy, but people start buying."],
+          ["Travel with friends", { happy: 16, money: -14, health: 4 }, "You collect stories, photos, and one suspicious airport sandwich."],
+        ],
+      },
+      {
+        text: "A surprise opportunity appears.",
+        choices: [
+          ["Take the risky job", { money: 18, happy: -5, health: -6 }, "The pay is great, the hours are intense."],
+          ["Build your social life", { happy: 13, smarts: 3, money: -5 }, "Your circle grows and new options open up."],
+          ["Train for a race", { health: 16, happy: 5, money: -4 }, "Your stamina jumps and so does your confidence."],
+        ],
+      },
+      {
+        text: "You hit a rough patch and need a plan.",
+        choices: [
+          ["Budget carefully", { money: 14, happy: -4, smarts: 5 }, "The spreadsheet is boring. The relief is not."],
+          ["Ask for help", { happy: 8, health: 8, money: -3 }, "Someone comes through for you at the right time."],
+          ["Ignore it and party", { happy: 8, health: -10, money: -10 }, "Fun tonight, consequences tomorrow."],
+        ],
+      },
+      {
+        text: "Your life is becoming famous in a small way.",
+        choices: [
+          ["Post daily content", { money: 8, happy: 5, health: -5 }, "Your audience grows one chaotic update at a time."],
+          ["Keep things private", { health: 7, happy: 7, money: -2 }, "Quiet starts feeling like a luxury."],
+          ["Launch an arcade site", { money: 16, smarts: 12, happy: -6 }, "The first version is rough, but people can play it."],
+        ],
+      },
+    ];
+
+    function clampStat(value) {
+      return Math.max(0, Math.min(100, value));
+    }
+
+    function newLife() {
+      life = { age: 18, step: 0, happy: 55, health: 60, money: 45, smarts: 50, log: [] };
+      renderLife();
+    }
+
+    function chooseLife(choice) {
+      Object.entries(choice[1]).forEach(([key, value]) => {
+        life[key] = clampStat(life[key] + value);
+      });
+      life.age += 4;
+      life.log.unshift(`Age ${life.age}: ${choice[2]}`);
+      life.step += 1;
+      renderLife();
+    }
+
+    function renderLife() {
+      lifeStatsEl.innerHTML = statNames.map((name) => `
+        <div class="stat">
+          <span>${name[0].toUpperCase()}${name.slice(1)} ${life[name]}</span>
+          <div class="bar"><div class="bar-fill" style="width:${life[name]}%"></div></div>
+        </div>
+      `).join("");
+
+      if (life.step >= scenarios.length) {
+        const total = statNames.reduce((sum, name) => sum + life[name], 0);
+        lifeStoryEl.textContent = total > 270
+          ? `At ${life.age}, your life is thriving. You built a strong path.`
+          : `At ${life.age}, your life is complicated, but still very playable.`;
+        lifeChoicesEl.innerHTML = `<button class="choice" type="button" id="life-again">Play another life</button>`;
+        document.getElementById("life-again").addEventListener("click", newLife);
+      } else {
+        const scenario = scenarios[life.step];
+        lifeStoryEl.textContent = scenario.text;
+        lifeChoicesEl.innerHTML = scenario.choices.map((choice, index) => `
+          <button class="choice" type="button" data-choice="${index}">${choice[0]}</button>
+        `).join("");
+        lifeChoicesEl.querySelectorAll("button").forEach((button) => {
+          button.addEventListener("click", () => chooseLife(scenario.choices[Number(button.dataset.choice)]));
+        });
+      }
+
+      lifeLogEl.innerHTML = life.log.map((item) => `<li>${item}</li>`).join("");
+    }
+
+    lifeReset.addEventListener("click", newLife);
+    newLife();
+  </script>
+</body>
+</html>

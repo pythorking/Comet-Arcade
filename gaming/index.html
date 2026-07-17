@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comet Arcade</title>
+  <link rel="icon" href="site-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game-platform">
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="Comet Arcade home">
+      <span class="brand-mark">C</span>
+      <span>Comet Arcade</span>
+    </a>
+    <nav class="topnav" aria-label="Main">
+      <a href="#featured">Featured</a>
+      <a href="#games">Games</a>
+      <a href="#play">Play</a>
+    </nav>
+  </header>
+
+  <main id="home">
+    <section class="hero" id="featured">
+      <div class="hero-copy">
+        <p class="eyebrow">Browser games hub</p>
+        <h1>Play quick games in one place.</h1>
+        <p>Enjoy card games, vertical climbers, physical air hockey, and vintage retro clickers directly in your browser.</p>
+        <a class="primary cta" href="#games">Browse Games</a>
+      </div>
+      <!-- Featured game set to Retro Vaporwave Clicker -->
+      <button class="featured-game" type="button" data-open-game="vaporwave-clicker">
+        <span class="badge">Featured</span>
+        <span class="game-art space-art" aria-hidden="true">
+          <span class="game-icon space-icon"></span>
+        </span>
+        <strong>Retro Vaporwave Clicker</strong>
+        <small>Synthesize core credits, upgrade computing drives, and harvest cabinet relics.</small>
+      </button>
+    </section>
+
+    <section class="home-icons" aria-label="Quick game icons">
+      <button class="home-icon-card" type="button" data-open-game="royal-poker">
+        <span class="mini-icon poker-icon"></span>
+        <strong>Poker</strong>
+      </button>
+      <button class="home-icon-card" type="button" data-open-game="sky-islands">
+        <span class="mini-icon space-icon"></span>
+        <strong>Jump</strong>
+      </button>
+      <button class="home-icon-card" type="button" data-open-game="holdem-hockey">
+        <span class="mini-icon life-icon"></span>
+        <strong>Hockey</strong>
+      </button>
+      <!-- Quick link set to Clicker -->
+      <button class="home-icon-card" type="button" data-open-game="vaporwave-clicker">
+        <span class="mini-icon space-icon"></span>
+        <strong>Clicker</strong>
+      </button>
+    </section>
+
+    <section class="category-strip" aria-label="Game categories">
+      <button class="chip active" type="button" data-filter="all">All</button>
+      <button class="chip" type="button" data-filter="cards">Cards</button>
+      <button class="chip" type="button" data-filter="arcade">Arcade</button>
+      <button class="chip" type="button" data-filter="clicker">Clicker</button>
+    </section>
+
+    <section class="catalog" id="games" aria-labelledby="games-title">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Game library</p>
+          <h2 id="games-title">Choose a game</h2>
+        </div>
+        <label class="search-label">
+          <span>Search</span>
+          <input id="game-search" type="search" placeholder="poker, jump, hockey, clicker">
+        </label>
+      </div>
+      <div class="game-grid" id="game-grid">
+        <!-- Royal Flush Poker -->
+        <button class="game-card" type="button" data-open-game="royal-poker" data-tags="cards poker casino">
+          <span class="game-art poker-art" aria-hidden="true">
+            <span class="game-icon poker-icon"></span>
+          </span>
+          <span class="badge">Playable</span>
+          <strong>Royal Flush Poker</strong>
+          <small>Full Texas Hold'em table with bots and betting.</small>
+        </button>
+        <!-- Sky Islands Jump -->
+        <button class="game-card" type="button" data-open-game="sky-islands" data-tags="arcade jump sky cozy">
+          <span class="game-art space-art" aria-hidden="true">
+            <span class="game-icon space-icon"></span>
+          </span>
+          <span class="badge">Playable</span>
+          <strong>Sky Islands Jump</strong>
+          <small>Bounce between floating islands and climb as high as you can.</small>
+        </button>
+        <!-- Hold'em Table Air Hockey -->
+        <button class="game-card" type="button" data-open-game="holdem-hockey" data-tags="arcade hockey poker casino">
+          <span class="game-art life-art" aria-hidden="true">
+            <span class="game-icon life-icon"></span>
+          </span>
+          <span class="badge">Playable</span>
+          <strong>Hold'em Table</strong>
+          <small>Casino-themed air hockey with customizable stakes.</small>
+        </button>
+        <!-- Retro Vaporwave Clicker (Fully Unlocked & Playable) -->
+        <button class="game-card" type="button" data-open-game="vaporwave-clicker" data-tags="arcade clicker vaporwave retro">
+          <span class="game-art space-art" aria-hidden="true">
+            <span class="game-icon space-icon"></span>
+          </span>
+          <span class="badge">Playable</span>
+          <strong>Retro Clicker</strong>
+          <small>Classic vaporwave synthesizer and cabinet relics.</small>
+        </button>
+      </div>
+    </section>
+
+    <section class="play-area" id="play" aria-labelledby="play-title">
+      <div class="player-shell">
+        <div class="player-main">
+          <div class="player-toolbar">
+            <button class="secondary" id="back-home" type="button">Home</button>
+            <div>
+              <p class="eyebrow">Now playing</p>
+              <h2 id="play-title">Choose a game</h2>
+            </div>
+            <button class="primary" id="fullscreen-game" type="button">Fullscreen</button>
+          </div>
+          <div class="game-frame-wrap" id="game-frame-wrap">
+            <iframe id="game-frame" title="Game player" src="about:blank" allowfullscreen></iframe>
+            <div class="empty-player" id="empty-player">
+              <span class="mini-icon space-icon"></span>
+              <strong>Pick a game to start playing.</strong>
+            </div>
+          </div>
+        </div>
+
+        <aside class="trending-panel" aria-labelledby="trending-title">
+          <p class="eyebrow">Trending</p>
+          <h2 id="trending-title">Games</h2>
+          <button class="trend-card" type="button" data-open-game="vaporwave-clicker">
+            <span class="mini-icon space-icon"></span>
+            <span><strong>Retro Clicker</strong><small>Vintage clicker</small></span>
+          </button>
+          <button class="trend-card" type="button" data-open-game="holdem-hockey">
+            <span class="mini-icon life-icon"></span>
+            <span><strong>Hold'em Table</strong><small>Casino air hockey</small></span>
+          </button>
+          <button class="trend-card" type="button" data-open-game="sky-islands">
+            <span class="mini-icon space-icon"></span>
+            <span><strong>Sky Islands Jump</strong><small>Vertical climber</small></span>
+          </button>
+          <button class="trend-card" type="button" data-open-game="royal-poker">
+            <span class="mini-icon poker-icon"></span>
+            <span><strong>Royal Flush Poker</strong><small>Texas Hold'em</small></span>
+          </button>
+        </aside>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+
+<!-- Script to bypass app.js unknown-game alerts for custom uploads -->
+<script>
+document.addEventListener('click', function(e) {
+  const card = e.target.closest('[data-open-game]');
+  if (card) {
+    const gameId = card.getAttribute('data-open-game');
+    
+    // Maps game IDs to their actual filenames
+    const customGames = {
+      'sky-islands': 'sky-islands.html',
+      'holdem-hockey': 'holdem-hockey.html',
+      'vaporwave-clicker': 'vaporwave-clicker.html'
+    };
+    
+    if (customGames[gameId]) {
+      // Prevents app.js from triggering the "future upload" alert popup
+      e.stopImmediatePropagation();
+      
+      const gameFrame = document.getElementById('game-frame');
+      const emptyPlayer = document.getElementById('empty-player');
+      const playTitle = document.getElementById('play-title');
+      
+      if (gameFrame) {
+        gameFrame.src = customGames[gameId];
+        if (emptyPlayer) emptyPlayer.style.display = 'none';
+        if (playTitle) {
+          const strong = card.querySelector('strong');
+          playTitle.textContent = strong ? strong.textContent : 'Game';
+        }
+        
+        // Smoothly scroll down to the viewport play section
+        const playSection = document.getElementById('play');
+        if (playSection) {
+          playSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  }
+}, true); // Use capturing phase to handle click actions before app.js intercepts them
+</script>
+
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sky Islands Jump — Doodle Jump Game</title>
+<meta name="description" content="A cozy sky-islands doodle jump game. Bounce between floating islands and climb as high as you can." />
+<style>
+  html,body{margin:0;padding:0;min-height:100%;font-family:system-ui,sans-serif}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;
+    background:linear-gradient(to bottom,#7dd3fc,#e0f2fe);color:#1e293b}
+  h1{margin:0;font-size:1.5rem;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .hud{display:flex;gap:24px;font-weight:600}
+  .frame{border-radius:16px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.25);
+    outline:4px solid rgba(255,255,255,.6)}
+  canvas{display:block;background:#bae6fd;touch-action:none}
+  .touch{display:none;gap:12px}
+  .touch button{border:0;border-radius:12px;background:rgba(255,255,255,.85);
+    padding:14px 26px;font-size:20px;font-weight:700;box-shadow:0 4px 8px rgba(0,0,0,.15)}
+  p{margin:0;font-size:.9rem}
+  @media (max-width:600px){.touch{display:flex}}
+</style>
+</head>
+<body>
+<h1>Sky Islands Jump</h1>
+<div class="hud"><div>Score: <span id="score">0</span></div><div>Best: <span id="best">0</span></div></div>
+<div class="frame"><canvas id="game" width="400" height="640"></canvas></div>
+<div class="touch">
+  <button id="bl">◀</button>
+  <button id="br">▶</button>
+</div>
+<p>Arrow keys / A D to move · Space to start / restart</p>
+<script>
+(() => {
+  const W=400,H=640,GRAVITY=0.35,JUMP_V=-12,MOVE_SPEED=5;
+  const PLAYER_W=40,PLAYER_H=40,PLATFORM_W=70,PLATFORM_H=16,PLATFORM_COUNT=8;
+  const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+  const scoreEl=document.getElementById('score'),bestEl=document.getElementById('best');
+  let best=parseInt(localStorage.getItem('sky-islands-best')||'0',10);bestEl.textContent=best;
+  let started=false,gameOver=false;
+  const makePlatforms=()=>{const a=[],gap=H/PLATFORM_COUNT;
+    for(let i=0;i<PLATFORM_COUNT;i++)a.push({x:Math.random()*(W-PLATFORM_W),y:H-i*gap-20,moving:false,dir:1});
+    return a;};
+  const s={px:W/2-PLAYER_W/2,py:H-120,vx:0,vy:0,keys:{left:false,right:false},
+    platforms:makePlatforms(),scrollY:0,facing:1,dead:false};
+  const reset=()=>{s.px=W/2-PLAYER_W/2;s.py=H-120;s.vx=0;s.vy=JUMP_V;
+    s.platforms=makePlatforms();s.scrollY=0;s.facing=1;s.dead=false;
+    started=true;gameOver=false;scoreEl.textContent='0';};
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')s.keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')s.keys.right=true;
+    if((e.key===' '||e.key==='Enter')&&(gameOver||!started))reset();
+  });
+  addEventListener('keyup',e=>{
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')s.keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')s.keys.right=false;
+  });
+  canvas.addEventListener('click',()=>{if(!started||gameOver)reset();});
+  const tm=d=>{s.keys.left=d==='left';s.keys.right=d==='right';};
+  const bl=document.getElementById('bl'),br=document.getElementById('br');
+  bl.ontouchstart=e=>{e.preventDefault();tm('left');};bl.ontouchend=()=>tm('none');
+  br.ontouchstart=e=>{e.preventDefault();tm('right');};br.ontouchend=()=>tm('none');
+
+  function loop(){
+    if(started&&!s.dead){
+      if(s.keys.left){s.vx=-MOVE_SPEED;s.facing=-1;}
+      else if(s.keys.right){s.vx=MOVE_SPEED;s.facing=1;}
+      else s.vx=0;
+      s.vy+=GRAVITY;s.px+=s.vx;s.py+=s.vy;
+      if(s.px+PLAYER_W<0)s.px=W; if(s.px>W)s.px=-PLAYER_W;
+      if(s.vy>0){for(const p of s.platforms){
+        if(s.px+PLAYER_W>p.x&&s.px<p.x+PLATFORM_W&&s.py+PLAYER_H>p.y&&s.py+PLAYER_H<p.y+PLATFORM_H+s.vy)s.vy=JUMP_V;
+      }}
+      if(s.py<H/2){const dy=H/2-s.py;s.py=H/2;s.scrollY+=dy;
+        for(const p of s.platforms){p.y+=dy;if(p.y>H){p.y=0;p.x=Math.random()*(W-PLATFORM_W);
+          p.moving=Math.random()<0.15+Math.min(0.3,s.scrollY/5000);p.dir=Math.random()<0.5?-1:1;}}
+        scoreEl.textContent=Math.floor(s.scrollY);
+      }
+      for(const p of s.platforms)if(p.moving){p.x+=p.dir*1.5;
+        if(p.x<0){p.x=0;p.dir=1;}if(p.x+PLATFORM_W>W){p.x=W-PLATFORM_W;p.dir=-1;}}
+      if(s.py>H){s.dead=true;gameOver=true;
+        const nb=Math.max(best,Math.floor(s.scrollY));if(nb!==best){best=nb;localStorage.setItem('sky-islands-best',String(nb));bestEl.textContent=nb;}}
+    }
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#a8d8ff');g.addColorStop(1,'#e6f4ff');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,0.6)';const co=(s.scrollY*0.2)%200;
+    for(let i=0;i<5;i++){const cy=((i*140+co)%(H+100))-50,cx=(i*97)%W;
+      ctx.beginPath();ctx.ellipse(cx,cy,40,14,0,0,Math.PI*2);ctx.ellipse(cx+30,cy-6,26,12,0,0,Math.PI*2);ctx.fill();}
+    for(const p of s.platforms){
+      ctx.fillStyle='#5cc76f';ctx.beginPath();ctx.ellipse(p.x+PLATFORM_W/2,p.y+6,PLATFORM_W/2,8,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8a6a4a';ctx.beginPath();ctx.moveTo(p.x+4,p.y+8);ctx.lineTo(p.x+PLATFORM_W-4,p.y+8);
+      ctx.lineTo(p.x+PLATFORM_W/2+10,p.y+22);ctx.lineTo(p.x+PLATFORM_W/2,p.y+28);
+      ctx.lineTo(p.x+PLATFORM_W/2-10,p.y+22);ctx.closePath();ctx.fill();
+    }
+    ctx.save();ctx.translate(s.px+PLAYER_W/2,s.py+PLAYER_H/2);
+    ctx.fillStyle='#ff7a59';ctx.beginPath();ctx.arc(0,0,PLAYER_W/2-2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.facing*6,-4,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#222';ctx.beginPath();ctx.arc(s.facing*8,-4,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3a2a1a';ctx.fillRect(-10,PLAYER_H/2-6,8,6);ctx.fillRect(2,PLAYER_H/2-6,8,6);
+    ctx.restore();
+    ctx.textAlign='center';
+    if(!started){ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';
+      ctx.font='bold 32px system-ui,sans-serif';ctx.fillText('Sky Islands Jump',W/2,H/2-40);
+      ctx.font='16px system-ui,sans-serif';ctx.fillText('Arrow keys or A/D to move',W/2,H/2);
+      ctx.fillText('Wraps around the edges',W/2,H/2+22);
+      ctx.font='bold 18px system-ui,sans-serif';ctx.fillText('Press Space or tap to start',W/2,H/2+60);}
+    if(gameOver){ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';
+      ctx.font='bold 36px system-ui,sans-serif';ctx.fillText('You fell!',W/2,H/2-30);
+      ctx.font='20px system-ui,sans-serif';ctx.fillText('Score: '+Math.floor(s.scrollY),W/2,H/2+4);
+      ctx.fillText('Best: '+best,W/2,H/2+30);
+      ctx.font='bold 18px system-ui,sans-serif';ctx.fillText('Press Space or tap to play again',W/2,H/2+68);}
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

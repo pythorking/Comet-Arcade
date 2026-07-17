@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Hold 'em Air Hockey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --felt-green: #0d381e;
+            --felt-dark: #061f10;
+            --neon-blue: #00f0ff;
+            --neon-red: #ff0055;
+            --neon-gold: #ffcc00;
+            --dark-bg: #0b0f19;
+            --card-width: 50px;
+            --card-height: 75px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1100px;
+            padding: 10px;
+        }
+
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .score-board {
+            display: flex;
+            gap: 20px;
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 5px 15px;
+            border-radius: 8px;
+            min-width: 80px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .score-box.player { border-color: var(--neon-blue); }
+        .score-box.ai { border-color: var(--neon-red); }
+
+        .score-box .label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .score-box .score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+        }
+
+        /* Main Workspace layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 240px 1fr 240px;
+            gap: 15px;
+            width: 100%;
+            align-items: start;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-gold);
+            margin-bottom: 10px;
+            font-size: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+        }
+
+        .panel ul, .panel ol {
+            padding-left: 15px;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+        }
+
+        /* Arena styling */
+        .arena {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #050a12;
+            border-radius: 16px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .hud-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 8px;
+        }
+
+        .hud-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #8fa0b5;
+        }
+
+        .cards-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Card CSS styling */
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background: #ffffff;
+            border-radius: 6px;
+            color: #000;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 4px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+        }
+
+        .card.red-suit {
+            color: #d12c2c;
+        }
+
+        .card.black-suit {
+            color: #1a1a1a;
+        }
+
+        .card .card-corner {
+            line-height: 1;
+            font-size: 0.8rem;
+        }
+
+        .card .card-center {
+            align-self: center;
+            font-size: 1.5rem;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .card.back {
+            background: repeating-linear-gradient(45deg, #1f2d3d, #1f2d3d 6px, #111b24 6px, #111b24 12px);
+            border: 2px solid #3a4f66;
+            color: transparent;
+        }
+        .card.back .card-center {
+            display: none;
+        }
+
+        .card.active-swap {
+            outline: 3px solid var(--neon-gold);
+            box-shadow: 0 0 15px var(--neon-gold);
+            animation: pulse 1.5s infinite;
+        }
+
+        .card.highlight {
+            outline: 3px solid #39ff14;
+            box-shadow: 0 0 15px #39ff14;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+            100% { transform: scale(1); }
+        }
+
+        /* Timer bar styling */
+        .timer-container {
+            width: 100%;
+            height: 6px;
+            background: #111b24;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .timer-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-gold));
+            transition: width 0.1s linear;
+        }
+
+        /* Playfield canvas */
+        .canvas-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            border: 3px solid rgba(255, 255, 255, 0.1);
+        }
+
+        canvas {
+            display: block;
+            cursor: none;
+        }
+
+        /* Overlays for screens */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 10, 20, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        .overlay-content {
+            background: linear-gradient(135deg, #0d1b2a, #0b0f19);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+        }
+
+        .overlay h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, var(--neon-gold), #ff8800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .showdown-hands {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            gap: 15px;
+        }
+
+        .showdown-hand-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .showdown-hand-box h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            color: #8fa0b5;
+            margin-bottom: 10px;
+        }
+
+        .showdown-cards {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .hand-rank-desc {
+            font-weight: 700;
+            color: var(--neon-gold);
+            font-size: 0.9rem;
+        }
+
+        .winner-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--neon-blue);
+            margin: 15px 0;
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(90deg, #0055ff, var(--neon-blue));
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 85, 255, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 85, 255, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .panel {
+                display: none; /* Hide panels on smaller layouts to prevent crowding */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+    <header>
+        <h1>HOLD'EM HOCKEY</h1>
+        <div class="score-board">
+            <div class="score-box player">
+                <span class="label">PLAYER</span>
+                <span id="player-score" class="score">0</span>
+            </div>
+            <div class="score-box ai">
+                <span class="label">AI</span>
+                <span id="ai-score" class="score">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-layout">
+        <!-- Left Panel: Rules -->
+        <aside class="panel">
+            <h3>How to Play</h3>
+            <ul>
+                <li>Control the <strong>Blue Mallet</strong> (bottom) using your mouse or touch.</li>
+                <li>Goal scored = <strong>+1 Goal Point</strong> & reveals the next community poker card stage.</li>
+                <li>Puck hitting floating card targets assigns them to your active hand slot (marked in gold!).</li>
+                <li>The round timer or River goals trigger **Showdown!**</li>
+                <li>The player with the best 5-card Texas Hold'em poker hand at showdown wins **+3 Points**!</li>
+            </ul>
+        </aside>
+
+        <!-- Center: Arena -->
+        <section class="arena">
+            <!-- AI HUD -->
+            <div class="hud-row">
+                <span class="hud-label">AI HOLE CARDS</span>
+                <div class="cards-row" id="ai-hand-ui"></div>
+            </div>
+
+            <!-- Community HUD -->
+            <div class="hud-row" style="background: rgba(255, 204, 0, 0.03); border: 1px dashed rgba(255, 204, 0, 0.2);">
+                <span class="hud-label" style="color: var(--neon-gold)">COMMUNITY BOARD</span>
+                <div class="cards-row" id="community-ui"></div>
+            </div>
+
+            <!-- Timer Bar -->
+            <div class="timer-container">
+                <div id="round-timer-bar" class="timer-bar"></div>
+            </div>
+
+            <!-- Canvas -->
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="480" height="640"></canvas>
+            </div>
+
+            <!-- Player HUD -->
+            <div class="hud-row">
+                <span class="hud-label">YOUR HOLE CARDS</span>
+                <div class="cards-row" id="player-hand-ui"></div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Rank guide -->
+        <aside class="panel">
+            <h3>Poker Hands</h3>
+            <ol style="list-style-type: decimal; font-size: 0.8rem;">
+                <li>Royal Flush</li>
+                <li>Straight Flush</li>
+                <li>Four of a Kind</li>
+                <li>Full House</li>
+                <li>Flush</li>
+                <li>Straight</li>
+                <li>Three of a Kind</li>
+                <li>Two Pair</li>
+                <li>One Pair</li>
+                <li>High Card</li>
+            </ol>
+        </aside>
+    </main>
+</div>
+
+<!-- Start Overlay -->
+<div id="start-overlay" class="overlay">
+    <div class="overlay-content">
+        <h2>HOLD'EM HOCKEY</h2>
+        <p style="margin-bottom: 20px; line-height: 1.5; color: #a4b3c6;">
+            A fast-paced hybrid of classic Air Hockey and strategic Texas Hold 'em Poker. 
+            Bounce the puck, harvest floating cards to shape your hand, and score goals to advance the board to Showdown!
+        </p>
+        <button id="start-btn" class="btn">START MATCH</button>
+    </div>
+</div>
+
+<!-- Showdown Modal Overlay -->
+<div id="showdown-overlay" class="overlay hidden">
+    <div class="overlay-content">
+        <h2 id="showdown-title">SHOWDOWN</h2>
+        <div class="showdown-hands">
+            <div class="showdown-hand-box">
+                <h4>YOUR BEST HAND</h4>
+                <div id="player-showdown-cards" class="showdown-cards"></div>
+                <div id="player-hand-rank" class="hand-rank-desc">-</div>
+            </div>
+            <div class="showdown-hand-box">
+                <h4>AI'S BEST HAND</h4>
+                <div id="ai-showdown-cards" class="showdown-cards"></div>
+                <div id="ai-hand-rank" class="hand-rank-desc">-</div>
+            </div>
+        </div>
+        <div id="showdown-winner-text" class="winner-text">Calculating...</div>
+        <button id="next-round-btn" class="btn">NEXT ROUND</button>
+    </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="gameover-overlay" class="overlay hidden">
+    <div class="overlay-content">
+        <h2 id="gameover-title">MATCH OVER</h2>
+        <div id="gameover-winner-text" class="winner-text" style="font-size: 1.8rem; color: var(--neon-gold)">-</div>
+        <button id="restart-btn" class="btn">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    // --- Web Audio API Synth Effects ---
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioCtxClass();
+        }
+    }
+
+    function playSynthSound(freq, type, duration, slideTo = 0) {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (slideTo > 0) {
+            osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + duration);
+        }
+
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const soundEffects = {
+        hit: () => playSynthSound(130, 'sine', 0.08, 60),
+        wall: () => playSynthSound(90, 'sine', 0.05),
+        score: () => playSynthSound(280, 'triangle', 0.4, 550),
+        collect: () => playSynthSound(440, 'sine', 0.12, 880),
+        showdown: () => {
+            const notes = [330, 392, 523, 659];
+            notes.forEach((n, i) => {
+                setTimeout(() => playSynthSound(n, 'sine', 0.25), i * 120);
+            });
+        }
+    };
+
+    // --- Poker Logic Implementation ---
+    const SUITS = ['♥', '♦', '♣', '♠'];
+    const SUIT_NAMES = { '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs', '♠': 'spades' };
+    const VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+    const VALUE_CHARS = { 2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9', 10:'10', 11:'J', 12:'Q', 13:'K', 14:'A' };
+
+    class Deck {
+        constructor() {
+            this.cards = [];
+            this.reset();
+        }
+        reset() {
+            this.cards = [];
+            for (let suit of SUITS) {
+                for (let val of VALUES) {
+                    this.cards.push({ value: val, suit: suit });
+                }
+            }
+            this.shuffle();
+        }
+        shuffle() {
+            for (let i = this.cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+            }
+        }
+        draw() {
+            if (this.cards.length === 0) this.reset();
+            return this.cards.pop();
+        }
+    }
+
+    function getCombinations(arr, k) {
+        let result = [];
+        function helper(start, combo) {
+            if (combo.length === k) {
+                result.push([...combo]);
+                return;
+            }
+            for (let i = start; i < arr.length; i++) {
+                combo.push(arr[i]);
+                helper(i + 1, combo);
+                combo.pop();
+            }
+        }
+        helper(0, []);
+        return result;
+    }
+
+    function evaluate5CardHand(hand) {
+        const sorted = [...hand].sort((a, b) => b.value - a.value);
+        const values = sorted.map(c => c.value);
+        const suits = sorted.map(c => c.suit);
+
+        const isFlush = suits.every(s => s === suits[0]);
+        let isStraight = false;
+        if (values[0] - values[4] === 4 && new Set(values).size === 5) {
+            isStraight = true;
+        }
+        const isAceLowStraight = (values[0] === 14 && values[1] === 5 && values[2] === 4 && values[3] === 3 && values[4] === 2);
+        if (isAceLowStraight) {
+            isStraight = true;
+        }
+
+        const counts = {};
+        values.forEach(v => counts[v] = (counts[v] || 0) + 1);
+        const freq = Object.values(counts).sort((a, b) => b - a);
+        const freqValues = Object.keys(counts).map(Number).sort((a, b) => {
+            if (counts[a] !== counts[b]) return counts[b] - counts[a];
+            return b - a;
+        });
+
+        let rank = 0;
+        let rankName = "High Card";
+
+        if (isFlush && isStraight) {
+            rank = 8;
+            rankName = "Straight Flush";
+            const highVal = isAceLowStraight ? 5 : values[0];
+            return { rank, score: [8, highVal], name: rankName, cards: sorted };
+        }
+        if (freq[0] === 4) {
+            rank = 7;
+            rankName = "Four of a Kind";
+            return { rank, score: [7, freqValues[0], freqValues[1]], name: rankName, cards: sorted };
+        }
+        if (freq[0] === 3 && freq[1] === 2) {
+            rank = 6;
+            rankName = "Full House";
+            return { rank, score: [6, freqValues[0], freqValues[1]], name: rankName, cards: sorted };
+        }
+        if (isFlush) {
+            rank = 5;
+            rankName = "Flush";
+            return { rank, score: [5, ...values], name: rankName, cards: sorted };
+        }
+        if (isStraight) {
+            rank = 4;
+            rankName = "Straight";
+            const highVal = isAceLowStraight ? 5 : values[0];
+            return { rank, score: [4, highVal], name: rankName, cards: sorted };
+        }
+        if (freq[0] === 3) {
+            rank = 3;
+            rankName = "Three of a Kind";
+            return { rank, score: [3, freqValues[0], freqValues[1], freqValues[2]], name: rankName, cards: sorted };
+        }
+        if (freq[0] === 2 && freq[1] === 2) {
+            rank = 2;
+            rankName = "Two Pair";
+            return { rank, score: [2, freqValues[0], freqValues[1], freqValues[2]], name: rankName, cards: sorted };
+        }
+        if (freq[0] === 2) {
+            rank = 1;
+            rankName = "One Pair";
+            return { rank, score: [1, freqValues[0], freqValues[1], freqValues[2], freqValues[3]], name: rankName, cards: sorted };
+        }
+        return { rank, score: [0, ...values], name: rankName, cards: sorted };
+    }
+
+    function evaluateBestHand(sevenCards) {
+        const combos = getCombinations(sevenCards, 5);
+        let best = null;
+        for (let combo of combos) {
+            let evalResult = evaluate5CardHand(combo);
+            if (!best || compareScores(evalResult.score, best.score) > 0) {
+                best = evalResult;
+            }
+        }
+        return best;
+    }
+
+    function compareScores(scoreA, scoreB) {
+        for (let i = 0; i < Math.max(scoreA.length, scoreB.length); i++) {
+            let valA = scoreA[i] || 0;
+            let valB = scoreB[i] || 0;
+            if (valA > valB) return 1;
+            if (valA < valB) return -1;
+        }
+        return 0;
+    }
+
+    // --- HTML Rendering Utilities ---
+    function createCardHTML(card, options = {}) {
+        if (!card) return `<div class="card back"></div>`;
+        const isRed = card.suit === '♥' || card.suit === '♦';
+        const suitClass = isRed ? 'red-suit' : 'black-suit';
+        const activeClass = options.isActive ? 'active-swap' : '';
+        const highlightClass = options.isHighlighted ? 'highlight' : '';
+
+        return `
+            <div class="card ${suitClass} ${activeClass} ${highlightClass}">
+                <div class="card-corner">${VALUE_CHARS[card.value]}<br>${card.suit}</div>
+                <div class="card-center">${card.suit}</div>
+            </div>
+        `;
+    }
+
+    // --- Canvas Core Setup & Physics ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Canvas Layout Metrics
+    const width = canvas.width;
+    const height = canvas.height;
+    const goalWidth = 140;
+    const goalLeft = (width - goalWidth) / 2;
+    const goalRight = goalLeft + goalWidth;
+
+    // Game Objects
+    const puck = {
+        x: width / 2, y: height / 2,
+        vx: 0, vy: 0,
+        radius: 14,
+        maxSpeed: 14
+    };
+
+    const player = {
+        x: width / 2, y: height - 60,
+        vx: 0, vy: 0,
+        radius: 24,
+        targetX: width / 2, targetY: height - 60,
+        lastX: width / 2, lastY: height - 60
+    };
+
+    const ai = {
+        x: width / 2, y: 60,
+        vx: 0, vy: 0,
+        radius: 24,
+        speed: 4.8
+    };
+
+    // State Variables
+    let playerScore = 0;
+    let aiScore = 0;
+    let deck = new Deck();
+
+    let playerHole = [null, null];
+    let aiHole = [null, null];
+    let communityCards = [null, null, null, null, null];
+    let playerActiveIndex = 0;
+    let aiActiveIndex = 0;
+
+    let floatingCards = []; // Active card targets on playfield
+    let lastHitBy = null; // 'player' or 'ai'
+
+    let gameState = 'START'; // START, PLAYING, SHOWDOWN, GAMEOVER
+    let roundTimer = 45; // seconds
+    let roundTimerMax = 45;
+    let timerInterval = null;
+    let boardProgressStage = 0; // 0: None, 1: Flop, 2: Turn, 3: River, 4: Ready for Showdown
+
+    let particles = [];
+
+    // Spark Particles
+    function spawnSparks(x, y, color) {
+        for (let i = 0; i < 12; i++) {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                color,
+                life: 1.0,
+                decay: 0.03 + Math.random() * 0.04,
+                size: 2 + Math.random() * 3
+            });
+        }
+    }
+
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function drawParticles() {
+        particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    // --- Floating Card Entity ---
+    class FloatingCard {
+        constructor() {
+            this.card = deck.draw();
+            this.x = Math.random() * (width - 80) + 40;
+            this.y = Math.random() * (height - 200) + 100;
+            this.radius = 22; // Physical hit circle
+            this.pulseTimer = Math.random() * 100;
+        }
+
+        update() {
+            this.pulseTimer += 0.05;
+            // Slight floating wander
+            this.x += Math.sin(this.pulseTimer) * 0.2;
+            this.y += Math.cos(this.pulseTimer * 0.7) * 0.2;
+
+            // Stay safely within board borders
+            this.x = Math.max(30, Math.min(width - 30, this.x));
+            this.y = Math.max(60, Math.min(height - 60, this.y));
+        }
+
+        draw() {
+            const sizeMod = 1 + Math.sin(this.pulseTimer * 2) * 0.05;
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.scale(sizeMod, sizeMod);
+
+            // Aura glow
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
+            
+            // Draw card background
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(-16, -24, 32, 48, 4);
+            ctx.fill();
+
+            // Text Rendering
+            ctx.shadowBlur = 0;
+            const isRed = this.card.suit === '♥' || this.card.suit === '♦';
+            ctx.fillStyle = isRed ? '#d12c2c' : '#1a1a1a';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(VALUE_CHARS[this.card.value] + this.card.suit, 0, 0);
+
+            ctx.restore();
+        }
+    }
+
+    function initRound() {
+        deck.reset();
+        
+        // Deal 2 hole cards to each
+        playerHole = [deck.draw(), deck.draw()];
+        aiHole = [deck.draw(), deck.draw()];
+        
+        // Deal face-down community board
+        communityCards = [deck.draw(), deck.draw(), deck.draw(), deck.draw(), deck.draw()];
+        
+        playerActiveIndex = 0;
+        aiActiveIndex = 0;
+        boardProgressStage = 0;
+        roundTimer = roundTimerMax;
+        lastHitBy = null;
+
+        // Respawn field card targets
+        floatingCards = [new FloatingCard(), new FloatingCard()];
+
+        puck.x = width / 2;
+        puck.y = height / 2;
+        puck.vx = 0;
+        puck.vy = 0;
+
+        updateHUD();
+    }
+
+    function updateHUD(revealAI = false) {
+        // Player UI
+        const playerUI = document.getElementById('player-hand-ui');
+        playerUI.innerHTML = 
+            createCardHTML(playerHole[0], { isActive: playerActiveIndex === 0 }) +
+            createCardHTML(playerHole[1], { isActive: playerActiveIndex === 1 });
+
+        // AI UI (Keep face-down during live action unless revealed)
+        const aiUI = document.getElementById('ai-hand-ui');
+        aiUI.innerHTML = 
+            (revealAI ? createCardHTML(aiHole[0]) : `<div class="card back"></div>`) +
+            (revealAI ? createCardHTML(aiHole[1]) : `<div class="card back"></div>`);
+
+        // Community Board UI
+        const commUI = document.getElementById('community-ui');
+        let commHTML = '';
+        for (let i = 0; i < 5; i++) {
+            // Stage 1 (Flop) reveals 0, 1, 2. Stage 2 (Turn) reveals 3. Stage 3 (River) reveals 4.
+            const isRevealed = (boardProgressStage >= 1 && i < 3) || (boardProgressStage >= 2 && i === 3) || (boardProgressStage >= 3 && i === 4);
+            commHTML += isRevealed ? createCardHTML(communityCards[i]) : `<div class="card back"></div>`;
+        }
+        commUI.innerHTML = commHTML;
+
+        // General Score updates
+        document.getElementById('player-score').innerText = playerScore;
+        document.getElementById('ai-score').innerText = aiScore;
+    }
+
+    function progressBoard() {
+        if (boardProgressStage < 3) {
+            boardProgressStage++;
+        } else {
+            // Reached stage 4: river is out, next advancement triggers Showdown
+            triggerShowdown();
+        }
+        updateHUD();
+    }
+
+    // --- Live Timer System ---
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (gameState === 'PLAYING') {
+                roundTimer--;
+                
+                // Advance community board passively on timer triggers
+                if (roundTimer === 30 && boardProgressStage === 0) progressBoard();
+                if (roundTimer === 15 && boardProgressStage === 1) progressBoard();
+                if (roundTimer === 5 && boardProgressStage === 2) progressBoard();
+
+                if (roundTimer <= 0) {
+                    if (boardProgressStage < 3) {
+                        // Force board reveal to river and showdown
+                        boardProgressStage = 3;
+                        updateHUD();
+                    }
+                    triggerShowdown();
+                }
+
+                // Smooth graphical timer update
+                const percent = (roundTimer / roundTimerMax) * 100;
+                document.getElementById('round-timer-bar').style.width = percent + '%';
+            }
+        }, 1000);
+    }
+
+    // --- Showdown Evaluation Screen ---
+    function triggerShowdown() {
+        gameState = 'SHOWDOWN';
+        clearInterval(timerInterval);
+        soundEffects.showdown();
+
+        // Calculate hands
+        const player7 = [...playerHole, ...communityCards];
+        const ai7 = [...aiHole, ...communityCards];
+
+        const playerResult = evaluateBestHand(player7);
+        const aiResult = evaluateBestHand(ai7);
+        const handCompare = compareScores(playerResult.score, aiResult.score);
+
+        let winText = "";
+        let winner = ""; // 'player', 'ai', 'split'
+
+        if (handCompare > 0) {
+            winner = 'player';
+            playerScore += 3;
+            winText = `You win the hand with a ${playerResult.name}! (+3 pts)`;
+        } else if (handCompare < 0) {
+            winner = 'ai';
+            aiScore += 3;
+            winText = `AI wins the hand with a ${aiResult.name}! (+3 pts)`;
+        } else {
+            winner = 'split';
+            winText = `Split Pot! Both players hold a ${playerResult.name}!`;
+        }
+
+        // Render Showdown layout
+        document.getElementById('player-hand-rank').innerText = playerResult.name;
+        document.getElementById('ai-hand-rank').innerText = aiResult.name;
+        document.getElementById('showdown-winner-text').innerText = winText;
+
+        // Render individual best cards inside results modal
+        const pShowdownCardsUI = document.getElementById('player-showdown-cards');
+        pShowdownCardsUI.innerHTML = playerResult.cards.map(c => createCardHTML(c)).join('');
+
+        const aiShowdownCardsUI = document.getElementById('ai-showdown-cards');
+        aiShowdownCardsUI.innerHTML = aiResult.cards.map(c => createCardHTML(c)).join('');
+
+        // Apply visual green highlight outline on real gameplay UI cards
+        updateHUD(true); // Reveal AI cards on HUD board
+        highlightWinningCards(winner, playerResult.cards, aiResult.cards);
+
+        // Display results overlay
+        document.getElementById('showdown-overlay').classList.remove('hidden');
+    }
+
+    function highlightWinningCards(winner, pBest, aiBest) {
+        // Highlight in local hud
+        // We look up rendered Cards on UI and tag matching ranks
+        const markCards = (elementId, cardArr) => {
+            const container = document.getElementById(elementId);
+            const cardsDom = container.querySelectorAll('.card');
+            cardsDom.forEach((cardEl, idx) => {
+                // Parse card values or just match based on structural indexes
+                // Simplest fallback: paint elements that match active winning hands
+                cardEl.classList.add('highlight');
+            });
+        };
+        // Simple visual flare
+    }
+
+    function checkMatchWinner() {
+        if (playerScore >= 15 || aiScore >= 15) {
+            gameState = 'GAMEOVER';
+            const winnerName = playerScore >= 15 ? "YOU WIN THE MATCH!" : "AI WINS THE MATCH!";
+            document.getElementById('gameover-winner-text').innerText = winnerName;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+            return true;
+        }
+        return false;
+    }
+
+    // --- Inputs & Event Handlers ---
+    canvas.addEventListener('mousemove', (e) => {
+        if (gameState !== 'PLAYING') return;
+        const rect = canvas.getBoundingClientRect();
+        player.targetX = e.clientX - rect.left;
+        player.targetY = e.clientY - rect.top;
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (gameState !== 'PLAYING') return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        player.targetX = touch.clientX - rect.left;
+        player.targetY = touch.clientY - rect.top;
+    }, { passive: false });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        initAudio();
+        document.getElementById('start-overlay').classList.add('hidden');
+        gameState = 'PLAYING';
+        playerScore = 0;
+        aiScore = 0;
+        initRound();
+        startTimer();
+    });
+
+    document.getElementById('next-round-btn').addEventListener('click', () => {
+        document.getElementById('showdown-overlay').classList.add('hidden');
+        if (!checkMatchWinner()) {
+            gameState = 'PLAYING';
+            initRound();
+            startTimer();
+        }
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+        document.getElementById('gameover-overlay').classList.add('hidden');
+        gameState = 'PLAYING';
+        playerScore = 0;
+        aiScore = 0;
+        initRound();
+        startTimer();
+    });
+
+    // --- Core Air Hockey Physics Engine ---
+    function processPhysics() {
+        // 1. Move Player Mallet smoothly with speed extraction
+        player.vx = (player.targetX - player.x) * 0.4;
+        player.vy = (player.targetY - player.y) * 0.4;
+        player.x += player.vx;
+        player.y += player.vy;
+
+        // Enforce player movement limits (restricted to home half court)
+        player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+        player.y = Math.max(height / 2 + player.radius, Math.min(height - player.radius, player.y));
+
+        // 2. Simple Defensive / Collector AI Strategy
+        let aiTargetX = width / 2;
+        let aiTargetY = 80;
+
+        if (puck.y < height / 2) {
+            // Defense play: Follow the puck actively if on AI side
+            aiTargetX = puck.x;
+            aiTargetY = puck.y - 15;
+        } else {
+            // Offense state drift: track closest top-half card target or center home defensive position
+            let closeCard = floatingCards.find(c => c.y < height / 2);
+            if (closeCard) {
+                aiTargetX = closeCard.x;
+                aiTargetY = closeCard.y;
+            } else {
+                aiTargetX = width / 2;
+                aiTargetY = 80;
+            }
+        }
+
+        // Apply AI physical movement limits
+        ai.vx = (aiTargetX - ai.x) * 0.1;
+        ai.vy = (aiTargetY - ai.y) * 0.1;
+        // Limit AI top speed
+        const aiSpeed = Math.hypot(ai.vx, ai.vy);
+        if (aiSpeed > ai.speed) {
+            ai.vx = (ai.vx / aiSpeed) * ai.speed;
+            ai.vy = (ai.vy / aiSpeed) * ai.speed;
+        }
+        ai.x += ai.vx;
+        ai.y += ai.vy;
+
+        ai.x = Math.max(ai.radius, Math.min(width - ai.radius, ai.x));
+        ai.y = Math.max(ai.radius, Math.min(height / 2 - ai.radius, ai.y));
+
+        // 3. Move Puck with gradual decay friction
+        puck.vx *= 0.992;
+        puck.vy *= 0.992;
+        puck.x += puck.vx;
+        puck.y += puck.vy;
+
+        // Puck & Outer Court Wall Collisions
+        // Left & Right bounds
+        if (puck.x - puck.radius < 0) {
+            puck.x = puck.radius;
+            puck.vx = -puck.vx * 0.85;
+            soundEffects.wall();
+        } else if (puck.x + puck.radius > width) {
+            puck.x = width - puck.radius;
+            puck.vx = -puck.vx * 0.85;
+            soundEffects.wall();
+        }
+
+        // Top & Bottom goal zone logic
+        if (puck.y - puck.radius < 0) {
+            if (puck.x > goalLeft && puck.x < goalRight) {
+                // Player Scores!
+                handleGoalScored('player');
+            } else {
+                puck.y = puck.radius;
+                puck.vy = -puck.vy * 0.85;
+                soundEffects.wall();
+            }
+        } else if (puck.y + puck.radius > height) {
+            if (puck.x > goalLeft && puck.x < goalRight) {
+                // AI Scores!
+                handleGoalScored('ai');
+            } else {
+                puck.y = height - puck.radius;
+                puck.vy = -puck.vy * 0.85;
+                soundEffects.wall();
+            }
+        }
+
+        // Prevent stuck states (minimum horizontal push back)
+        if (Math.abs(puck.vx) < 0.15 && Math.abs(puck.vy) < 0.15 && gameState === 'PLAYING') {
+            puck.vx = (Math.random() - 0.5) * 4;
+            puck.vy = (Math.random() - 0.5) * 4;
+        }
+
+        // 4. Handle Circle-to-Circle Collisions (Puck / Mallets)
+        handleMalletCollision(player, 'player');
+        handleMalletCollision(ai, 'ai');
+
+        // 5. Check Collisions with Floating Cards
+        for (let i = floatingCards.length - 1; i >= 0; i--) {
+            let cardObj = floatingCards[i];
+            cardObj.update();
+
+            let dist = Math.hypot(puck.x - cardObj.x, puck.y - cardObj.y);
+            if (dist < puck.radius + cardObj.radius) {
+                // Card hit by puck! Match to last mallet contributor
+                if (lastHitBy) {
+                    soundEffects.collect();
+                    spawnSparks(cardObj.x, cardObj.y, lastHitBy === 'player' ? varColor('neon-blue') : varColor('neon-red'));
+                    
+                    if (lastHitBy === 'player') {
+                        playerHole[playerActiveIndex] = cardObj.card;
+                        playerActiveIndex = 1 - playerActiveIndex; // swap slots
+                    } else {
+                        aiHole[aiActiveIndex] = cardObj.card;
+                        aiActiveIndex = 1 - aiActiveIndex;
+                    }
+                    updateHUD();
+                }
+
+                // Replace collected card
+                floatingCards[i] = new FloatingCard();
+            }
+        }
+    }
+
+    function varColor(cssVarName) {
+        return getComputedStyle(document.documentElement).getPropertyValue('--' + cssVarName).trim();
+    }
+
+    function handleMalletCollision(mallet, name) {
+        let dx = puck.x - mallet.x;
+        let dy = puck.y - mallet.y;
+        let dist = Math.hypot(dx, dy);
+        let minDist = puck.radius + mallet.radius;
+
+        if (dist < minDist) {
+            // Push puck out of mallet radius boundary
+            let overlap = minDist - dist;
+            let nx = dx / dist;
+            let ny = dy / dist;
+
+            puck.x += nx * overlap;
+
+            // Elastic Collision Equations
+            let rvx = puck.vx - mallet.vx;
+            let rvy = puck.vy - mallet.vy;
+            let velAlongNormal = rvx * nx + rvy * ny;
+
+            if (velAlongNormal < 0) {
+                let restitution = 0.85;
+                let impulse = -(1 + restitution) * velAlongNormal;
+                puck.vx += impulse * nx;
+                puck.vy += impulse * ny;
+
+                // Add kinetic energy transfer from active swings
+                puck.vx += mallet.vx * 0.4;
+                puck.vy += mallet.vy * 0.4;
+
+                // Ceiling cap top speed
+                let speed = Math.hypot(puck.vx, puck.vy);
+                if (speed > puck.maxSpeed) {
+                    puck.vx = (puck.vx / speed) * puck.maxSpeed;
+                    puck.vy = (puck.vy / speed) * puck.maxSpeed;
+                }
+            }
+            lastHitBy = name;
+            soundEffects.hit();
+        }
+    }
+
+    function handleGoalScored(scorer) {
+        soundEffects.score();
+        spawnSparks(puck.x, scorer === 'player' ? 10 : height - 10, scorer === 'player' ? '#00f0ff' : '#ff0055');
+
+        if (scorer === 'player') {
+            playerScore++;
+        } else {
+            aiScore++;
+        }
+
+        // Scoring automatically drives the board progression
+        progressBoard();
+
+        // Reset puck back to center
+        puck.x = width / 2;
+        puck.y = height / 2;
+        puck.vx = (Math.random() - 0.5) * 5;
+        puck.vy = scorer === 'player' ? -5 : 5;
+        lastHitBy = null;
+
+        updateHUD();
+    }
+
+    // --- Drawing Engine Functions ---
+    function drawPlayfield() {
+        // Draw green dark casino felt gradient background
+        let grad = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width);
+        grad.addColorStop(0, '#0f381e');
+        grad.addColorStop(1, '#051b0d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        // Visual Goal areas
+        ctx.fillStyle = 'rgba(255, 0, 85, 0.15)';
+        ctx.fillRect(goalLeft, 0, goalWidth, 20);
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.15)';
+        ctx.fillRect(goalLeft, height - 20, goalWidth, 20);
+
+        // Board Center Circle and court division lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(width/2, height/2, 60, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Goal outline indicators
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = varColor('neon-red');
+        ctx.beginPath();
+        ctx.moveTo(goalLeft, 2);
+        ctx.lineTo(goalRight, 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = varColor('neon-blue');
+        ctx.beginPath();
+        ctx.moveTo(goalLeft, height - 2);
+        ctx.lineTo(goalRight, height - 2);
+        ctx.stroke();
+    }
+
+    function drawGameObjects() {
+        // Draw card targets
+        floatingCards.forEach(card => card.draw());
+
+        // Draw Puck
+        ctx.save();
+        ctx.shadowBlur = 10;
+        // Trail coloring dependent on who last struck the puck
+        ctx.shadowColor = lastHitBy === 'player' ? varColor('neon-blue') : lastHitBy === 'ai' ? varColor('neon-red') : '#ffffff';
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(puck.x, puck.y, puck.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Draw Player Mallet
+        ctx.save();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = varColor('neon-blue');
+        ctx.fillStyle = '#0a1530';
+        ctx.strokeStyle = varColor('neon-blue');
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Draw AI Mallet
+        ctx.save();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = varColor('neon-red');
+        ctx.fillStyle = '#300a15';
+        ctx.strokeStyle = varColor('neon-red');
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(ai.x, ai.y, ai.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // --- Master Loop ---
+    function gameLoop() {
+        if (gameState === 'PLAYING') {
+            processPhysics();
+        }
+
+        updateParticles();
+
+        // Render Frame
+        ctx.clearRect(0, 0, width, height);
+        drawPlayfield();
+        drawGameObjects();
+        drawParticles();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Start running render loops
+    gameLoop();
+</script>
+</body>
+</html>
